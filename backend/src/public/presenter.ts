@@ -1,0 +1,40 @@
+import { Prisma } from '@prisma/client';
+import { band } from '../rating/rating.engine';
+import { DISCLAIMER, OUTLOOK_TEXT, PILLARS, WATCH_TEXT } from '../rating/methodology';
+
+export const formatActionId = (n: number) => `RA-${String(n).padStart(4, '0')}`;
+export const num = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : Number(v.toString()));
+
+/** Public part of one rating action. Never contains committee votes, analyst names or raw internal inputs. */
+export function presentAction(a: Prisma.RatingActionGetPayload<{ include: { reply: true } }>, previousRating?: string | null) {
+  const pillars = a.accuracy === null ? null : PILLARS.map((p) => ({ key: p.key, label: p.label, weight: p.weight, score: (a as any)[p.key] as number }));
+  const inputs = (a.inputs ?? {}) as Record<string, number | null>;
+  return {
+    actionId: formatActionId(a.actionNumber),
+    type: a.type,
+    rating: a.rating,
+    band: a.rating ? band(a.rating) : null,
+    previousRating: previousRating ?? null,
+    outlook: a.outlook,
+    outlookText: a.outlook ? OUTLOOK_TEXT[a.outlook] : null,
+    watch: a.watch,
+    watchText: a.watch ? WATCH_TEXT[a.watch] : null,
+    watchReason: a.watch ? a.watchReason : null,
+    scorecard: {
+      totalScore: a.totalScore,
+      indicatedRating: a.indicatedRating,
+      scorecardRating: a.scorecardRating,
+      appliedCaps: a.appliedCaps,
+      measurableCalls: a.measurableCalls,
+      hitRate: inputs.hitRate ?? null,
+      medianExcess30d: inputs.medianExcess30d ?? null,
+      pillars,
+      differsFromScorecard: !!a.rating && a.rating !== a.scorecardRating,
+    },
+    rationale: a.rationale,
+    methodologyVersion: a.methodologyVersion,
+    publishedAt: a.publishedAt,
+    reply: a.reply ? { body: a.reply.body, at: a.reply.updatedAt } : null,
+    disclaimer: DISCLAIMER,
+  };
+}

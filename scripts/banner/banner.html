@@ -1,0 +1,167 @@
+<!doctype html>
+<!-- Source of public/fides-banner.png. Render: see scripts/banner/README.md -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FIDES banner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#f5f0e8; --ink:#2c2f35; --soft:#4a4f57; --faint:#4a4f5799; --brass:#7c1522; --amber:#c98c10; --green:#2f6b4f;
+          --serif:'Fraunces',Georgia,serif; --mono:'IBM Plex Mono',ui-monospace,monospace; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:2000px; height:667px; background:var(--paper); overflow:hidden; }
+  .banner { position:relative; width:2000px; height:667px;
+            background: radial-gradient(900px 500px at 50% 45%, #fbf8f2 0%, var(--paper) 60%, #ece4d6 100%); }
+  #net { position:absolute; inset:0; }
+  .mono { font-family:var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--soft); }
+
+  /* left: the scale */
+  .left { position:absolute; left:58px; top:118px; width:380px; }
+  .left .label { font-size:19px; }
+  .tiers { margin-top:42px; display:flex; flex-direction:column; gap:38px; }
+  .tier { display:flex; align-items:center; gap:26px; }
+  .badge { font-family:var(--serif); font-weight:600; font-size:50px; line-height:1; color:var(--ink); min-width:150px; text-align:center;
+           padding:10px 14px 6px; border:2px solid var(--ink); background:#fbf8f2; border-left-width:12px; letter-spacing:.01em; }
+  .t .badge { border-left-color:var(--green); } .s .badge { border-left-color:var(--amber); } .d .badge { border-left-color:var(--brass); background:#f3e3e3; }
+  .tier .name { font-family:var(--serif); font-size:27px; color:var(--ink); letter-spacing:.01em; border-left:2px solid #7c152266; padding-left:22px; line-height:1.15; }
+  .tier .name small { display:block; font-family:var(--mono); font-size:14px; letter-spacing:.12em; color:var(--faint); margin-top:5px; }
+
+  /* center: wordmark */
+  .center { position:absolute; left:480px; top:158px; width:680px; text-align:center; }
+  .word { font-family:var(--serif); font-weight:600; font-size:150px; line-height:1; color:#161616; letter-spacing:.26em; margin-right:-.26em; white-space:nowrap; }
+  .rule { position:relative; height:2px; background:#7c152299; margin:48px 0 42px; }
+  .rule::after { content:''; position:absolute; left:50%; top:-4px; width:9px; height:9px; border-radius:50%; background:var(--brass); transform:translateX(-50%); }
+  .tag { font-family:var(--serif); font-size:46px; white-space:nowrap; line-height:1.1; color:var(--ink); letter-spacing:-.01em; }
+  .tag em { font-style:italic; color:var(--brass); font-weight:500; }
+  .est { margin-top:44px; font-size:15px; letter-spacing:.14em; white-space:nowrap; }
+
+  /* right-middle: pillars of the promise */
+  .facts { position:absolute; left:1186px; top:158px; width:276px; padding-left:42px; border-left:2px solid #7c152255; height:340px; }
+  .fact { margin-bottom:40px; }
+  .fact b { display:block; font-family:var(--serif); font-weight:500; font-size:30px; color:var(--ink); letter-spacing:.01em; }
+  .fact span { display:block; font-family:var(--mono); font-size:14px; letter-spacing:.1em; text-transform:uppercase; color:var(--soft); margin-top:9px; }
+  .fact i { display:block; margin-top:26px; height:2px; background:#7c152266; position:relative; }
+  .fact i::after { content:''; position:absolute; left:50%; top:-3px; width:7px; height:7px; border-radius:50%; background:var(--brass); }
+  .fact:last-child i { display:none; }
+
+  /* right: illustration */
+  .art { position:absolute; left:1478px; top:70px; width:520px; height:480px; }
+  .powered { position:absolute; left:1395px; top:585px; width:600px; text-align:center; }
+  .powered .mono { font-size:17px; }
+  .pills { display:flex; justify-content:center; gap:0; margin-top:18px; font-family:var(--serif); font-size:26px; color:var(--ink); }
+  .pills span { padding:0 26px; border-left:2px solid #7c152233; } .pills span:first-child { border-left:0; }
+</style>
+</head>
+<body>
+<div class="banner">
+  <svg id="net" width="2000" height="667" viewBox="0 0 2000 667" aria-hidden="true"></svg>
+
+  <div class="left">
+    <div class="mono label">The FIDES scale</div>
+    <div class="tiers">
+      <div class="tier t"><div class="badge">AAA</div><div class="name">TRUSTED<small>AAA – BBB−</small></div></div>
+      <div class="tier s"><div class="badge">BB</div><div class="name">SPECULATIVE<small>BB+ – C</small></div></div>
+      <div class="tier d"><div class="badge">D</div><div class="name">DEFAULT<small>ON TRUST</small></div></div>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="word">FIDES</div>
+    <div class="rule"></div>
+    <div class="tag">Every call has a <em>credit history</em></div>
+    <div class="mono est">Public data · Committee rated · Right of reply</div>
+  </div>
+
+  <div class="facts">
+    <div class="fact"><b>PUBLIC DATA</b><span>Calls, disclosures, declared wallets</span><i></i></div>
+    <div class="fact"><b>COMMITTEE</b><span>Votes on every rating</span><i></i></div>
+    <div class="fact"><b>ZERO</b><span>Paid placement</span></div>
+  </div>
+
+  <svg class="art" viewBox="0 0 520 480" aria-hidden="true">
+    <defs>
+      <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d8b25c"/><stop offset=".5" stop-color="#b98a2f"/><stop offset="1" stop-color="#8f6420"/></linearGradient>
+      <linearGradient id="marble" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9e2d6"/></linearGradient>
+    </defs>
+    <!-- orbits -->
+    <ellipse cx="260" cy="236" rx="248" ry="214" fill="none" stroke="#7c1522" stroke-opacity=".55" stroke-width="1.6"/>
+    <ellipse cx="260" cy="236" rx="196" ry="168" fill="none" stroke="#7c1522" stroke-opacity=".3" stroke-width="1.2"/>
+    <!-- pedestal -->
+    <ellipse cx="260" cy="448" rx="150" ry="22" fill="#d9d1c3"/>
+    <path d="M118 424h284v24a142 22 0 0 1-284 0z" fill="url(#marble)" stroke="#2c2f35" stroke-opacity=".25"/>
+    <ellipse cx="260" cy="424" rx="142" ry="21" fill="#f7f2e9" stroke="#7c1522" stroke-width="2"/>
+    <ellipse cx="260" cy="410" rx="86" ry="12" fill="url(#brass)"/>
+    <!-- pole -->
+    <rect x="252" y="118" width="16" height="294" rx="8" fill="url(#brass)"/>
+    <circle cx="260" cy="102" r="13" fill="url(#brass)"/>
+    <path d="M260 66l9 22h-18z" fill="url(#brass)"/>
+    <!-- beam -->
+    <path d="M78 150h364" stroke="#b98a2f" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="260" cy="150" r="14" fill="#8f6420"/>
+    <circle cx="78" cy="150" r="9" fill="url(#brass)"/><circle cx="442" cy="150" r="9" fill="url(#brass)"/>
+    <!-- chains -->
+    <g stroke="#9a6f2c" stroke-width="1.6" fill="none">
+      <path d="M78 156 38 318M78 156 118 318M78 156 78 322"/>
+      <path d="M442 156 402 318M442 156 482 318M442 156 442 322"/>
+    </g>
+    <!-- pans -->
+    <path d="M26 318h104a52 26 0 0 1-104 0z" fill="url(#brass)"/><ellipse cx="78" cy="318" rx="52" ry="9" fill="#e7c987"/><ellipse cx="78" cy="318" rx="52" ry="9" fill="none" stroke="#7c1522" stroke-width="2.4"/>
+    <path d="M390 318h104a52 26 0 0 1-104 0z" fill="url(#brass)"/><ellipse cx="442" cy="318" rx="52" ry="9" fill="#e7c987"/><ellipse cx="442" cy="318" rx="52" ry="9" fill="none" stroke="#7c1522" stroke-width="2.4"/>
+    <!-- coin -->
+    <ellipse cx="78" cy="296" rx="30" ry="9" fill="#e6b84d" stroke="#9a6f2c" stroke-width="1.5"/>
+    <rect x="48" y="288" width="60" height="10" fill="#e6b84d"/>
+    <ellipse cx="78" cy="288" rx="30" ry="9" fill="#f3cd6a" stroke="#9a6f2c" stroke-width="1.5"/>
+    <text x="78" y="292" text-anchor="middle" font-family="Fraunces,serif" font-weight="700" font-size="13" fill="#8f6420">F</text>
+    <!-- speech bubble -->
+    <rect x="410" y="262" width="66" height="44" rx="12" fill="#fbf8f2" stroke="#2c2f35" stroke-opacity=".35"/>
+    <path d="M426 304l-6 16 20-12z" fill="#fbf8f2" stroke="#2c2f35" stroke-opacity=".35"/>
+    <circle cx="428" cy="284" r="4.5" fill="#7c1522"/><circle cx="443" cy="284" r="4.5" fill="#7c1522"/><circle cx="458" cy="284" r="4.5" fill="#7c1522"/>
+    <!-- chain nodes -->
+    <g font-family="IBM Plex Mono,monospace" font-size="13" font-weight="600" text-anchor="middle">
+      <circle cx="260" cy="22" r="30" fill="#fbf8f2" stroke="#2c2f35" stroke-opacity=".25"/><text x="260" y="27" fill="#2c2f35">ETH</text>
+      <circle cx="466" cy="106" r="30" fill="#fbf8f2" stroke="#c98c10" stroke-opacity=".6"/><text x="466" y="111" fill="#9a6a06">BNB</text>
+      <circle cx="486" cy="268" r="30" fill="#fbf8f2" stroke="#2c2f35" stroke-opacity=".25"/><text x="486" y="273" fill="#2c2f35">BASE</text>
+      <circle cx="386" cy="428" r="30" fill="#fbf8f2" stroke="#7c1522" stroke-opacity=".5"/><text x="386" y="433" fill="#7c1522">OP</text>
+      <circle cx="104" cy="426" r="30" fill="#fbf8f2" stroke="#2c2f35" stroke-opacity=".25"/><text x="104" y="431" fill="#2c2f35">ARB</text>
+      <circle cx="30" cy="236" r="30" fill="#fbf8f2" stroke="#2f6b4f" stroke-opacity=".5"/><text x="30" y="241" fill="#2f6b4f">SOL</text>
+    </g>
+  </svg>
+
+  <div class="powered">
+    <div class="mono">Scored by AI · Voted by people</div>
+    <div class="pills"><span>Claude Fable 5</span><span>Nano Banana</span><span>Grok</span></div>
+  </div>
+</div>
+
+<script>
+// Faint network of tiny balance-scale marks, seeded so the render is repeatable.
+(function () {
+  const svg = document.getElementById('net'), NS = 'http://www.w3.org/2000/svg';
+  let seed = 11; const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  const blocked = (x, y) => (x > 40 && x < 460 && y > 90 && y < 520) || (x > 470 && x < 1180 && y > 120 && y < 640) || (x > 1180 && x < 1470 && y > 130 && y < 520) || (x > 1380 && y > 520)||(x > 1440 && y > 40);
+  const pts = [];
+  while (pts.length < 46) {
+    const x = 20 + rnd() * 1960, y = 14 + rnd() * 640;
+    if (!blocked(x, y)) pts.push([x, y, 0.6 + rnd() * 0.9]);
+  }
+  pts.forEach((a, i) => {
+    pts.slice(i + 1).map(b => [b, Math.hypot(a[0] - b[0], a[1] - b[1])]).filter(p => p[1] < 330).sort((p, q) => p[1] - q[1]).slice(0, 1).forEach(([b]) => {
+      const l = document.createElementNS(NS, 'line');
+      l.setAttribute('x1', a[0]); l.setAttribute('y1', a[1]); l.setAttribute('x2', b[0]); l.setAttribute('y2', b[1]);
+      l.setAttribute('stroke', '#7c1522'); l.setAttribute('stroke-opacity', '.16'); l.setAttribute('stroke-width', '1'); l.setAttribute('stroke-dasharray', '2 5');
+      svg.appendChild(l);
+    });
+  });
+  pts.forEach(([x, y, s]) => {
+    const g = document.createElementNS(NS, 'g');
+    g.setAttribute('transform', `translate(${x} ${y}) scale(${s})`);
+    g.setAttribute('opacity', (0.28 + s * 0.22).toFixed(2));
+    g.innerHTML = '<path d="M0-13v26M-9-8h18M-9-8l-5 11h10zM9-8l-5 11h10zM-6 13h12" fill="none" stroke="#7c1522" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>';
+    svg.appendChild(g);
+  });
+})();
+</script>
+</body>
+</html>

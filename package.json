@@ -1,0 +1,26 @@
+{
+  "name": "fides-web",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "oxlint app components lib",
+    "check:brand": "node scripts/check-brand.mjs"
+  },
+  "dependencies": {
+    "next": "^15.5.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "three": "^0.128.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.128.0",
+    "oxlint": "^1.71.0",
+    "typescript": "~5.9.0"
+  }
+}

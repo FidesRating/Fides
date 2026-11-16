@@ -1,0 +1,543 @@
+// FIDES — Credibility ratings for crypto influencers (AAA–D, outlook, watch)
+// PostgreSQL schema (Prisma 6.19, Rust-free client via @prisma/adapter-pg)
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum StaffRole {
+  analyst   // data, evidence, scorecard
+  committee // votes on rating, outlook, watch, appeals
+  admin     // everything, including takedown
+}
+
+enum InfluencerStatus {
+  tracked      // data is being collected, no rating yet
+  under_review // a rating action is open and not yet published
+  rated
+  not_rated    // NR published (not enough data)
+  removed      // takedown: gone from every public page
+}
+
+/// Platform of a social account. The MVP only creates X accounts; the others are reserved for later.
+enum Platform {
+  x
+  youtube
+  telegram
+}
+
+enum CallDirection {
+  long
+  short
+}
+
+enum WalletMethod {
+  self_disclosed_post // disclosed by the account in a public post (sourceUrl required)
+  signature           // proved with a signature by a claimed account
+}
+
+enum PromotionSource {
+  project_disclosure // the project disclosed paying the influencer
+  public_admission   // the influencer admitted it publicly
+  onchain_payment    // payment to a wallet the account declared itself
+  invoice            // published invoice or contract
+  tip                // came from a reviewed Desk Tip
+}
+
+enum EvidenceStatus {
+  pending
+  confirmed
+  rejected
+}
+
+enum ActionType {
+  new
+  upgrade
+  downgrade
+  affirm
+  withdraw
+}
+
+enum ActionStatus {
+  draft      // scorecard calculated by the analyst
+  committee  // waiting for committee votes
+  notice     // decided; 48 hour notice to the rated account
+  published
+  superseded
+  cancelled
+}
+
+enum Outlook {
+  positive
+  stable
+  negative
+  developing
+}
+
+enum Watch {
+  watch_positive
+  watch_negative
+  watch_evolving
+}
+
+enum NoticeChannel {
+  profile   // account is claimed: notice shown on the /claim dashboard
+  x_mention // account is not claimed: staff mention it on X
+}
+
+enum AppealStatus {
+  open
+  upheld   // rating stays
+  reopened // committee opens a new review
+  rejected // appeal does not meet the conditions
+}
+
+enum TipKind {
+  paid_promotion
+  deleted_post
+  wallet_sale
+  rug
+  other
+}
+
+enum TipStatus {
+  new
+  accepted
+  rejected
+  duplicate
+}
+
+enum ArticleKind {
+  downgrade_note
+  study
+  methodology_note
+  case_file
+  interview
+}
+
+// ───────────────────────────── Staff ─────────────────────────────
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  apiKeyHash   String?   @unique // sha256 of the x-staff-key header
+  name         String
+  role         StaffRole @default(analyst)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  actionsDrafted     RatingAction[]        @relation("Analyst")
+  votes              CommitteeVote[]
+  conflicts          ConflictDeclaration[]
+  promotionsReviewed Promotion[]
+  articles           Article[]
+  callsEntered       Call[]                @relation("CallEnteredBy")
+  snapshots          EvidenceSnapshot[]
+  auditLogs          AuditLog[]
+}
+
+/// Staff action log. Written by an interceptor for every non-GET staff request. Prune on a schedule.
+model AuditLog {
+  id        String   @id @default(uuid())
+  staffId   String?
+  staff     User?    @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  action    String // "POST /admin/influencers"
+  entityId  String? // route :id when present
+  createdAt DateTime @default(now())
+
+  @@index([staffId, createdAt])
+  @@index([createdAt])
+}
+
+// ─────────────────────────── Influencers ─────────────────────────
+
+/// The rated subject. One influencer can hold several social accounts (platform neutral).
+model Influencer {
+  id              String           @id @default(uuid())
+  /// Public slug used in URLs. Equals the handle of the primary social account at creation.
+  handle          String           @unique // lowercase, without @
+  displayName     String
+  avatarUrl       String?
+  status          InfluencerStatus @default(tracked)
+  participating   Boolean          @default(false) // at least one account claimed
+  reviewDue       Boolean          @default(false)
+  reviewDueReason String?
+  removedAt       DateTime?
+  removedReason   String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  accounts   SocialAccount[]
+  wallets    Wallet[]
+  calls      Call[]
+  promotions Promotion[]
+  actions    RatingAction[]
+  conflicts  ConflictDeclaration[]
+  tips       Tip[]
+  articles   Article[]             @relation("ArticleInfluencers")
+}
+
+/// A public account of an influencer on one platform. Followers and profile claim live here.
+model SocialAccount {
+  id           String     @id @default(uuid())
+  influencerId String
+  influencer   Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  platform     Platform   @default(x)
+  handle       String // lowercase, without @
+  externalId   String? // platform user id when known
+  followers    Int
+
+  // Profile claim
+  claimedById   String?   @unique
+  claimedBy     Member?   @relation("Claimed", fields: [claimedById], references: [id])
+  claimedAt     DateTime?
+  claimCode     String?
+  claimMemberId String? // member currently claiming
+  claimCodeAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  calls Call[]
+
+  @@unique([platform, handle])
+  @@index([influencerId])
+}
+
+/// Only self-disclosed or signature-proved wallets. There are no "suspected" wallets.
+model Wallet {
+  id           String       @id @default(uuid())
+  influencerId String
+  influencer   Influencer   @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  chainKey     String
+  address      String
+  method       WalletMethod
+  sourceUrl    String? // public post where the wallet was disclosed
+  verifiedAt   DateTime     @default(now())
+
+  checks CallWalletCheck[]
+
+  @@unique([influencerId, chainKey, address])
+}
+
+/// One token recommendation in a public post, with the prices needed for measurement.
+model Call {
+  id                    String        @id @default(uuid())
+  influencerId          String
+  influencer            Influencer    @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  socialAccountId       String
+  socialAccount         SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Restrict)
+  postUrl               String        @unique
+  archiveUrl            String?
+  postedAt              DateTime
+  tokenSymbol           String
+  chainKey              String?
+  tokenAddress          String?
+  direction             CallDirection @default(long)
+  sponsoredDisclosed    Boolean       @default(false) // the post carries #ad / "sponsored"
+  priceAtCall           Decimal       @db.Decimal(38, 18)
+  price7d               Decimal?      @db.Decimal(38, 18)
+  price30d              Decimal?      @db.Decimal(38, 18)
+  price90d              Decimal?      @db.Decimal(38, 18)
+  btcAtCall             Decimal       @db.Decimal(20, 2)
+  btc7d                 Decimal?      @db.Decimal(20, 2)
+  btc30d                Decimal?      @db.Decimal(20, 2)
+  btc90d                Decimal?      @db.Decimal(20, 2)
+  deletedAt             DateTime? // post detected as deleted
+  projectRugConfirmedAt DateTime?
+  retractedAt           DateTime? // the influencer publicly withdrew the call
+  // Price provenance: where the numbers came from and who entered them.
+  priceSource           String        @default("manual")
+  priceSourceRef        String? // exchange, pool or document used by the analyst
+  enteredById           String?
+  enteredBy             User?         @relation("CallEnteredBy", fields: [enteredById], references: [id], onDelete: SetNull)
+  createdAt             DateTime      @default(now())
+
+  walletChecks CallWalletCheck[]
+  promotions   Promotion[]
+  snapshots    EvidenceSnapshot[]
+
+  @@index([influencerId, postedAt])
+  @@index([socialAccountId])
+}
+
+model CallWalletCheck {
+  id         String   @id @default(uuid())
+  callId     String
+  call       Call     @relation(fields: [callId], references: [id], onDelete: Cascade)
+  walletId   String
+  wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  heldAtCall Boolean
+  soldPct7d  Float    @default(0) // 0–1: share of the token sold within 7 days after the call
+  txHashes   String[]
+  checkedAt  DateTime @default(now())
+
+  @@unique([callId, walletId])
+}
+
+/// Paid promotion evidence. Only confirmed rows feed the scorecard and the public pages.
+model Promotion {
+  id           String          @id @default(uuid())
+  influencerId String
+  influencer   Influencer      @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  callId       String?
+  call         Call?           @relation(fields: [callId], references: [id], onDelete: SetNull)
+  source       PromotionSource
+  evidenceUrl  String
+  disclosed    Boolean
+  amountUsd    Decimal?        @db.Decimal(20, 2)
+  status       EvidenceStatus  @default(pending)
+  note         String?
+  reviewedById String?
+  reviewedBy   User?           @relation(fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  createdAt    DateTime        @default(now())
+
+  tips      Tip[]
+  snapshots EvidenceSnapshot[]
+
+  @@index([influencerId, status])
+}
+
+/// Provenance record for a piece of evidence: source URL, capture time, content hash, who captured it.
+/// The file itself lives in private storage (only the path is kept here). Public APIs expose link and hash only.
+/// Exactly one of callId / promotionId is set (enforced by a CHECK constraint in the migration).
+model EvidenceSnapshot {
+  id            String     @id @default(uuid())
+  callId        String?
+  call          Call?      @relation(fields: [callId], references: [id], onDelete: Cascade)
+  promotionId   String?
+  promotion     Promotion? @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  sourceUrl     String
+  archiveUrl    String?
+  contentHash   String // sha256, 64 hex characters
+  capturedAt    DateTime
+  capturedById  String
+  capturedBy    User       @relation(fields: [capturedById], references: [id], onDelete: Restrict)
+  storagePath   String?
+  createdAt     DateTime   @default(now())
+
+  @@index([callId])
+  @@index([promotionId])
+}
+
+// ─────────────────────────── Methodology ─────────────────────────
+
+model MethodologyVersion {
+  version     String   @id
+  pillars     Json
+  scale       Json
+  rules       Json
+  changelog   String
+  isCurrent   Boolean  @default(false)
+  publishedAt DateTime @default(now())
+
+  actions RatingAction[]
+}
+
+// ─────────────────────────── Rating actions ──────────────────────
+
+model RatingAction {
+  id                 String             @id @default(uuid())
+  actionNumber       Int                @unique // RA-0001
+  influencerId       String
+  influencer         Influencer         @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  methodologyVersion String
+  methodology        MethodologyVersion @relation(fields: [methodologyVersion], references: [version])
+  status             ActionStatus       @default(draft)
+  type               ActionType?
+
+  // Scorecard (calculated by the server)
+  accuracy         Int?
+  disclosure       Int?
+  walletAlignment  Int?
+  conduct          Int?
+  totalScore       Int?
+  indicatedRating  String? // from the score, before caps
+  scorecardRating  String? // after caps / D / NR
+  appliedCaps      String[]
+  isDefault        Boolean  @default(false)
+  notRated         Boolean  @default(false)
+  measurableCalls  Int      @default(0)
+  inputs           Json? // summary of the data used (hit rate, median, etc.)
+  suggestedOutlook Outlook?
+
+  // Committee decision
+  rating      String?
+  outlook     Outlook?
+  watch       Watch?
+  watchReason String?
+  watchSetAt  DateTime?
+  rationale   String?
+
+  noticeChannel NoticeChannel?
+  noticeSentAt  DateTime?
+  publishAfter  DateTime?
+  publishedAt   DateTime?
+  finalizedAt   DateTime?
+
+  analystId  String?
+  analyst    User?         @relation("Analyst", fields: [analystId], references: [id])
+  previousId String?       @unique
+  previous   RatingAction? @relation("Chain", fields: [previousId], references: [id])
+  next       RatingAction? @relation("Chain")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  votes  CommitteeVote[]
+  reply  Reply?
+  appeal Appeal?
+
+  @@index([influencerId, status])
+  @@index([status, publishedAt])
+}
+
+model CommitteeVote {
+  id        String       @id @default(uuid())
+  actionId  String
+  action    RatingAction @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  staffId   String
+  staff     User         @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  rating    String?
+  outlook   Outlook?
+  recused   Boolean      @default(false)
+  note      String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([actionId, staffId])
+}
+
+model ConflictDeclaration {
+  id           String     @id @default(uuid())
+  staffId      String
+  staff        User       @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  influencerId String
+  influencer   Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  reason       String
+  createdAt    DateTime   @default(now())
+
+  @@unique([staffId, influencerId])
+}
+
+/// Right of reply: one reply per rating action, shown unedited.
+model Reply {
+  id        String       @id @default(uuid())
+  actionId  String       @unique
+  action    RatingAction @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Appeal {
+  id        String       @id @default(uuid())
+  actionId  String       @unique // one appeal per rating action
+  action    RatingAction @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  reason    String
+  status    AppealStatus @default(open)
+  decision  String?
+  decidedAt DateTime?
+  createdAt DateTime     @default(now())
+}
+
+// ──────────────────────────── Members ────────────────────────────
+
+model Member {
+  id                 String    @id @default(uuid())
+  walletAddress      String    @unique // Solana (login)
+  tokenBalance       Decimal   @default(0) @db.Decimal(30, 9)
+  lastBalanceCheckAt DateTime?
+  createdAt          DateTime  @default(now())
+  lastSeenAt         DateTime  @default(now())
+
+  socialAccount SocialAccount? @relation("Claimed")
+  sessions      MemberSession[]
+  apiKeys       ApiKey[]
+  tips          Tip[]
+}
+
+model AuthNonce {
+  id            String    @id @default(uuid())
+  walletAddress String
+  nonce         String    @unique
+  purpose       String // login | influencer_wallet
+  subjectId     String? // influencerId for influencer_wallet
+  chainKey      String?
+  message       String
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([walletAddress])
+}
+
+model MemberSession {
+  id        String   @id @default(uuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  memberId   String
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  label      String
+  prefix     String
+  keyHash    String    @unique
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+/// Desk Tip: evidence from a holder. Never changes a rating directly.
+model Tip {
+  id           String     @id @default(uuid())
+  memberId     String
+  member       Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  influencerId String
+  influencer   Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  kind         TipKind
+  evidenceUrl  String
+  note         String?
+  status       TipStatus  @default(new)
+  promotionId  String?
+  promotion    Promotion? @relation(fields: [promotionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime   @default(now())
+
+  @@index([status, createdAt])
+}
+
+// ─────────────────────────── Publication ─────────────────────────
+
+model Article {
+  id          String      @id @default(uuid())
+  slug        String      @unique
+  kind        ArticleKind
+  title       String
+  standfirst  String
+  body        String
+  readMinutes Int?
+  authorId    String?
+  author      User?       @relation(fields: [authorId], references: [id])
+  publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  influencers Influencer[] @relation("ArticleInfluencers")
+
+  @@index([kind, publishedAt])
+}
