@@ -1,6 +1,7 @@
 import {
-  BadRequestException, Controller, Get, GoneException, Header, Injectable, Module, NotFoundException, Param, Query, UseGuards,
+  BadRequestException, Controller, Get, GoneException, Header, Injectable, Module, NotFoundException, Param, Query, UseGuards, UseInterceptors,
 } from '@nestjs/common';
+import { PublicCacheInterceptor } from './cache.interceptor';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Prisma } from '@prisma/client';
@@ -10,6 +11,7 @@ import { band, notch } from '../rating/rating.engine';
 import { ALL_RATINGS, DISCLAIMER, METHODOLOGY_VERSION, OUTLOOK_TEXT, PILLARS, RULES, SCALE, WATCH_TEXT } from '../rating/methodology';
 import { CHAIN_REGISTRY, explorerUrl } from '../config/explorer-registry';
 import { formatActionId, num, presentAction } from './presenter';
+import { activeWatch } from '../rating/watch';
 
 export class ListRatingsDto {
   @IsOptional() @IsIn(['trusted', 'speculative', 'default', 'not_rated']) band?: string;
@@ -58,7 +60,14 @@ export class PublicService {
       where: { status: { in: ['rated', 'not_rated'] }, actions: { some: { status: 'published' } } },
       include: {
         accounts: { select: { followers: true } },
-        actions: { where: { status: 'published' }, include: { previous: { select: { rating: true } } } },
+        // Only the columns the list needs: the full row carries the scorecard inputs JSON.
+        actions: {
+          where: { status: 'published' },
+          select: {
+            actionNumber: true, type: true, rating: true, outlook: true, watch: true, watchSetAt: true, totalScore: true, publishedAt: true,
+            accuracy: true, disclosure: true, walletAlignment: true, conduct: true, previous: { select: { rating: true } },
+          },
+        },
       },
     });
     let out = rows.map((i) => {
@@ -66,7 +75,7 @@ export class PublicService {
       const weakest = a.accuracy === null ? null : PILLARS.reduce((w, p) => ((a as any)[p.key] < (a as any)[w.key] ? p : w), PILLARS[0]).label;
       return {
         handle: i.handle, displayName: i.displayName, followers: maxFollowers(i.accounts), avatarUrl: i.avatarUrl, participating: i.participating,
-        rating: a.rating!, band: band(a.rating!), outlook: a.outlook, watch: a.watch, totalScore: a.totalScore, weakestPillar: weakest,
+        rating: a.rating!, band: band(a.rating!), outlook: a.outlook, watch: activeWatch(a), totalScore: a.totalScore, weakestPillar: weakest,
         lastAction: { actionId: formatActionId(a.actionNumber), type: a.type, previousRating: a.previous?.rating ?? null, publishedAt: a.publishedAt },
       };
     });
@@ -95,7 +104,7 @@ export class PublicService {
       }),
       this.prisma.call.count({ where: { influencerId: inf.id } }),
       this.calls(inf.id, isHolder ? undefined : PUBLIC_CALLS),
-      this.history(inf.handle),
+      this.historyOf(inf.id),
       this.prisma.ratingAction.count({ where: { influencerId: inf.id, status: { in: ['draft', 'committee', 'notice'] } } }),
     ]);
     const nextReview = new Date((current.publishedAt ?? new Date()).getTime() + RULES.fullReviewDays * 86400_000);
@@ -155,14 +164,21 @@ export class PublicService {
 
   async history(handle: string) {
     const inf = await this.influencerOr410(handle);
+    return this.historyOf(inf.id);
+  }
+
+  private async historyOf(influencerId: string) {
     const rows = await this.prisma.ratingAction.findMany({
-      where: { influencerId: inf.id, status: { in: ['published', 'superseded'] } },
+      where: { influencerId, status: { in: ['published', 'superseded'] } },
       orderBy: { publishedAt: 'desc' },
-      include: { previous: { select: { rating: true } } },
+      select: {
+        actionNumber: true, type: true, rating: true, outlook: true, watch: true, watchSetAt: true, totalScore: true,
+        publishedAt: true, status: true, previous: { select: { rating: true } },
+      },
     });
     return rows.map((a) => ({
       actionId: formatActionId(a.actionNumber), type: a.type, rating: a.rating, previousRating: a.previous?.rating ?? null,
-      outlook: a.outlook, watch: a.watch, totalScore: a.totalScore, publishedAt: a.publishedAt, current: a.status === 'published',
+      outlook: a.outlook, watch: activeWatch(a), totalScore: a.totalScore, publishedAt: a.publishedAt, current: a.status === 'published',
     }));
   }
 
@@ -176,7 +192,7 @@ export class PublicService {
     return rows.map((a) => ({
       actionId: formatActionId(a.actionNumber), type: a.type, handle: a.influencer.handle, displayName: a.influencer.displayName,
       avatarUrl: a.influencer.avatarUrl, rating: a.rating, previousRating: a.previous?.rating ?? null, outlook: a.outlook,
-      watch: a.watch, publishedAt: a.publishedAt,
+      watch: activeWatch(a), publishedAt: a.publishedAt,
     }));
   }
 
@@ -250,6 +266,7 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const BAND_COLOR = { trusted: '#2f6b4f', speculative: '#c98c10', default: '#7c1522', not_rated: '#4a4f5799' };
 
 @Controller()
+@UseInterceptors(PublicCacheInterceptor)
 export class PublicController {
   constructor(private readonly pub: PublicService) {}
 

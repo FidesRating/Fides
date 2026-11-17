@@ -43,7 +43,32 @@ export class SurveillanceService {
     if (flagged) this.logger.log(`Surveillance flagged ${flagged} account(s) for committee review`);
     return { checked: published.length, flagged };
   }
+
+  /**
+   * Deletes ephemeral rows so the free-plan database stays small: login nonces (kept one day after expiry),
+   * expired member sessions, and audit rows older than AUDIT_RETENTION_DAYS (default 365).
+   */
+  async prune(now = new Date()) {
+    const day = 86400_000;
+    const retentionDays = Number(process.env.AUDIT_RETENTION_DAYS ?? 365);
+    const [nonces, sessions, audit] = await Promise.all([
+      this.prisma.authNonce.deleteMany({ where: { expiresAt: { lt: new Date(now.getTime() - day) } } }),
+      this.prisma.memberSession.deleteMany({ where: { expiresAt: { lt: now } } }),
+      this.prisma.auditLog.deleteMany({ where: { createdAt: { lt: new Date(now.getTime() - retentionDays * day) } } }),
+    ]);
+    return { nonces: nonces.count, sessions: sessions.count, audit: audit.count };
+  }
+
+  /** The daily job: surveillance sweep, then pruning. */
+  async daily(now = new Date()) {
+    const swept = await this.sweep(now);
+    const pruned = await this.prune(now);
+    return { ...swept, pruned };
+  }
 }
+
+/** ROLE=all (default) runs the API and the job worker in one process; api or worker lets a later split use the same image. */
+export const runsWorker = () => ['all', 'worker'].includes(process.env.ROLE ?? 'all');
 
 @Processor(SURVEILLANCE_QUEUE)
 export class SurveillanceProcessor extends WorkerHost {
@@ -52,7 +77,7 @@ export class SurveillanceProcessor extends WorkerHost {
   }
 
   async process(job: Job) {
-    if (job.name === 'sweep') return this.surveillance.sweep();
+    if (job.name === 'sweep') return this.surveillance.daily();
   }
 }
 
@@ -78,7 +103,7 @@ export class SurveillanceScheduler implements OnApplicationBootstrap, OnModuleDe
         return;
       }
       this.logger.warn(`BullMQ unavailable (${e.message}); running surveillance in-process every 24h`);
-      this.timer = setInterval(() => this.surveillance.sweep().catch((err) => this.logger.error(err)), 24 * 3600_000);
+      this.timer = setInterval(() => this.surveillance.daily().catch((err) => this.logger.error(err)), 24 * 3600_000);
     }
   }
 
@@ -89,6 +114,6 @@ export class SurveillanceScheduler implements OnApplicationBootstrap, OnModuleDe
 
 @Module({
   imports: [RatingModule, BullModule.registerQueue({ name: SURVEILLANCE_QUEUE })],
-  providers: [SurveillanceService, SurveillanceProcessor, SurveillanceScheduler],
+  providers: [SurveillanceService, ...(runsWorker() ? [SurveillanceProcessor, SurveillanceScheduler] : [])],
 })
 export class SurveillanceModule {}

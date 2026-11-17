@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { band } from '../rating/rating.engine';
 import { DISCLAIMER, OUTLOOK_TEXT, PILLARS, WATCH_TEXT } from '../rating/methodology';
+import { activeWatch } from '../rating/watch';
 
 export const formatActionId = (n: number) => `RA-${String(n).padStart(4, '0')}`;
 export const num = (v: { toString(): string } | null | undefined) => (v === null || v === undefined ? null : Number(v.toString()));
@@ -9,6 +10,7 @@ export const num = (v: { toString(): string } | null | undefined) => (v === null
 export function presentAction(a: Prisma.RatingActionGetPayload<{ include: { reply: true } }>, previousRating?: string | null) {
   const pillars = a.accuracy === null ? null : PILLARS.map((p) => ({ key: p.key, label: p.label, weight: p.weight, score: (a as any)[p.key] as number }));
   const inputs = (a.inputs ?? {}) as Record<string, number | null>;
+  const watch = activeWatch(a);
   return {
     actionId: formatActionId(a.actionNumber),
     type: a.type,
@@ -17,9 +19,9 @@ export function presentAction(a: Prisma.RatingActionGetPayload<{ include: { repl
     previousRating: previousRating ?? null,
     outlook: a.outlook,
     outlookText: a.outlook ? OUTLOOK_TEXT[a.outlook] : null,
-    watch: a.watch,
-    watchText: a.watch ? WATCH_TEXT[a.watch] : null,
-    watchReason: a.watch ? a.watchReason : null,
+    watch,
+    watchText: watch ? WATCH_TEXT[watch] : null,
+    watchReason: watch ? a.watchReason : null,
     scorecard: {
       totalScore: a.totalScore,
       indicatedRating: a.indicatedRating,

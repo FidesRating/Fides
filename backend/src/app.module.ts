@@ -11,6 +11,7 @@ import { CommitteeModule } from './committee/committee';
 import { ClaimsModule } from './claims/claims';
 import { ResearchModule } from './research/research';
 import { SurveillanceModule } from './queue/surveillance';
+import { HealthController } from './health.controller';
 
 const redisUrl = new URL(process.env.REDIS_URL || 'redis://localhost:6379');
 
@@ -37,6 +38,7 @@ const redisUrl = new URL(process.env.REDIS_URL || 'redis://localhost:6379');
     ResearchModule,
     SurveillanceModule,
   ],
+  controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

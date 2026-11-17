@@ -129,7 +129,8 @@ model User {
   id           String    @id @default(uuid())
   email        String    @unique
   passwordHash String
-  apiKeyHash   String?   @unique // sha256 of the x-staff-key header
+  apiKeyHash   String?   @unique // deprecated: staff now sign in with a wallet session
+  walletAddress String?  @unique // staff wallet from the STAFF_WALLETS allowlist
   name         String
   role         StaffRole @default(analyst)
   createdAt    DateTime  @default(now())
@@ -137,6 +138,7 @@ model User {
 
   actionsDrafted     RatingAction[]        @relation("Analyst")
   votes              CommitteeVote[]
+  appealVotes        AppealVote[]
   conflicts          ConflictDeclaration[]
   promotionsReviewed Promotion[]
   articles           Article[]
@@ -381,6 +383,7 @@ model RatingAction {
 
   noticeChannel NoticeChannel?
   noticeSentAt  DateTime?
+  noticeProofUrl String? // x_mention channel: public post where staff mentioned the account; internal, never public
   publishAfter  DateTime?
   publishedAt   DateTime?
   finalizedAt   DateTime?
@@ -449,6 +452,20 @@ model Appeal {
   decision  String?
   decidedAt DateTime?
   createdAt DateTime     @default(now())
+  votes     AppealVote[]
+}
+
+/// A committee member's vote to reject an appeal. Rejecting needs the same quorum as a rating (3 non-conflicted members).
+model AppealVote {
+  id        String   @id @default(uuid())
+  appealId  String
+  appeal    Appeal   @relation(fields: [appealId], references: [id], onDelete: Cascade)
+  staffId   String
+  staff     User     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([appealId, staffId])
 }
 
 // ──────────────────────────── Members ────────────────────────────

@@ -24,6 +24,15 @@ test('production config: refuses SEED_DEMO=true and the mock balance', () => {
   assert.throws(() => assertProductionConfig({ ...safe, TOKEN_GATE_MOCK_BALANCE: '1' }), /TOKEN_GATE_MOCK_BALANCE/);
 });
 
+test('production config: refuses a malformed STAFF_WALLETS', () => {
+  assert.throws(() => assertProductionConfig({ ...safe, STAFF_WALLETS: 'bad:analyst' }), /STAFF_WALLETS/);
+});
+
+test('production config: ROLE must be all, api or worker', () => {
+  assert.doesNotThrow(() => assertProductionConfig({ ...safe, ROLE: 'worker' }));
+  assert.throws(() => assertProductionConfig({ ...safe, ROLE: 'both' }), /ROLE/);
+});
+
 test('production config: development is not restricted', () => {
   assert.doesNotThrow(() => assertProductionConfig({ NODE_ENV: 'development', NOTICE_HOURS: '1', SEED_DEMO: 'true' }));
 });
