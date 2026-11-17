@@ -9,12 +9,13 @@ const GOOD = ['https://x.com/a/status/1', 'https://x.com/a/status/2', 'https://x
 
 /** In-memory stand-in for the few Prisma calls the service makes. */
 function fake(opts: { draft?: any; submitted?: any; covered?: boolean; manages?: boolean } = {}) {
-  const calls: { updated: any[]; created: any[] } = { updated: [], created: [] };
+  const calls: { updated: any[]; created: any[]; deleted: any[] } = { updated: [], created: [], deleted: [] };
   const prisma: any = {
     application: {
       findFirst: async () => opts.draft ?? null,
       findUnique: async () => opts.submitted ?? null,
       update: async (a: any) => { calls.updated.push(a); return a; },
+      deleteMany: async (a: any) => { calls.deleted.push(a); return { count: 1 }; },
     },
     socialAccount: { findUnique: async (a: any) => (a.where.claimedById ? (opts.manages ? { handle: 'other' } : null) : opts.covered ? { id: 'x' } : null) },
     influencer: { findUnique: async () => null, create: (a: any) => { calls.created.push(a); return a; } },
@@ -68,4 +69,11 @@ test('application: accepting creates a covered account that the applicant alread
 
 test('application: accepting is refused when the applicant already manages another account', async () => {
   await assert.rejects(fake({ submitted: { ...draft, status: 'submitted' }, manages: true }).svc.review('a1', { status: 'accepted' }, staff), ConflictException);
+});
+
+test('application: signing out of X drops only the unsent draft of that member', async () => {
+  const { svc, calls } = fake();
+  const r = await svc.discardDraft(member);
+  assert.equal(r.discarded, 1);
+  assert.deepEqual(calls.deleted[0].where, { memberId: 'm1', status: 'draft' });
 });

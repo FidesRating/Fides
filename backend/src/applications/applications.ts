@@ -55,6 +55,12 @@ export class ApplicationsService {
     return { status: 'submitted', message: 'Application sent. Staff will review it, and the decision will appear on this page.' };
   }
 
+  /** Signs out of X: only an unsent draft can be dropped. A submitted application stays with staff. */
+  async discardDraft(member: Member) {
+    const res = await this.prisma.application.deleteMany({ where: { memberId: member.id, status: 'draft' } });
+    return { discarded: res.count };
+  }
+
   list(status?: ApplicationStatus) {
     return this.prisma.application.findMany({
       where: { status: status ?? 'submitted' },
@@ -103,6 +109,12 @@ export class ApplicationsController {
   @UseGuards(SessionGuard)
   mine(@CurrentMember() mc: MemberContext) {
     return this.applications.mine(mc.member);
+  }
+
+  @Post('discard')
+  @UseGuards(SessionGuard)
+  discard(@CurrentMember() mc: MemberContext) {
+    return this.applications.discardDraft(mc.member);
   }
 
   @Post('submit')

@@ -97,6 +97,16 @@ export default function ClaimFlow() {
     if (r.ok) await loadProfile(token);
   }
 
+  /** Signs out of X: drops the verified X identity of an unsent application. The wallet stays connected, so another X account can be used. */
+  async function disconnectX() {
+    if (!token) return;
+    setBusy(true);
+    const r = await call('/claim/application/discard', token, {});
+    setBusy(false);
+    if (r.ok) { setApplication(null); setMessage('Signed out of X. Your wallet is still connected.'); }
+    else setMessage(errorText(r));
+  }
+
   async function signOut() {
     const tok = token;
     setToken(null);
@@ -134,7 +144,7 @@ export default function ClaimFlow() {
           )}
           <div className="btns">
             <button className="btn primary" disabled={busy} onClick={loginWithX}>Log in with X</button>
-            <button className="btn" onClick={signOut}>Sign out</button>
+            <button className="btn" onClick={signOut}>Disconnect wallet</button>
           </div>
         </>
       )}
@@ -171,7 +181,8 @@ export default function ClaimFlow() {
             </label>
             <div className="full btns">
               <button className="btn primary" disabled={busy}>Submit application</button>
-              <button type="button" className="btn" onClick={signOut}>Sign out</button>
+              <button type="button" className="btn" disabled={busy} onClick={disconnectX}>Sign out X</button>
+              <button type="button" className="btn" onClick={signOut}>Disconnect wallet</button>
             </div>
           </form>
         </>
@@ -181,7 +192,7 @@ export default function ClaimFlow() {
         <>
           <h2>Application under review</h2>
           <p>Your application for @{application.handle} was sent. Staff review the evidence. The decision will appear on this page, so sign in again later to see it.</p>
-          <div className="btns"><button className="btn" onClick={signOut}>Sign out</button></div>
+          <div className="btns"><button className="btn" onClick={signOut}>Disconnect wallet</button></div>
         </>
       )}
 
@@ -233,7 +244,7 @@ export default function ClaimFlow() {
             </form>
           )}
 
-          <div className="btns"><button className="btn" onClick={signOut}>Sign out</button></div>
+          <div className="btns"><button className="btn" onClick={signOut}>Disconnect wallet</button></div>
         </>
       )}
     </section>
