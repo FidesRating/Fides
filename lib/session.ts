@@ -44,7 +44,10 @@ export async function signInWithWallet(): Promise<{ token: string } | { error: s
     if (!v.ok) return { error: errorText(v) };
     writeToken(v.json.token);
     return { token: v.json.token };
-  } catch {
-    return { error: 'Wallet request was cancelled.' };
+  } catch (e) {
+    // 4001 is the EIP-1193 code for a request the user rejected. Anything else is a real problem, such as a blocked API call.
+    if ((e as { code?: number })?.code === 4001) return { error: 'Wallet request was cancelled.' };
+    if (e instanceof TypeError) return { error: 'Could not reach the FIDES API. Check your connection and try again.' };
+    return { error: 'Wallet sign-in failed. Try again.' };
   }
 }
