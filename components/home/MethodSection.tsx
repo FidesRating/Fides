@@ -3,7 +3,7 @@ export default function MethodSection() {
     <>
     <section className="box method" id="method" aria-labelledby="h-method">
       <div className="l">
-        <span className="idx">06 / METHODOLOGY</span>
+        <span className="idx">METHODOLOGY</span>
         <span className="eyebrow"><i className="dot"></i>FAIR TO THE RATED, USEFUL TO THE READER</span>
         <h2 id="h-method">Every rating can be checked, <em>and answered.</em></h2>
         <p className="sub">Public data only, a published scorecard, notice before publication, and a right of reply on the page.</p>

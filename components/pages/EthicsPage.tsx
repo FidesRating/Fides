@@ -16,7 +16,7 @@ export default function EthicsPage() {
       </section>
       <section className="box split">
         <div className="panel">
-          <span className="idx">01 / WHO CAN BE RATED</span>
+          <span className="idx">WHO CAN BE RATED</span>
           <ul className="list-dot">
             <li><span><b>Public accounts only</b>, with at least 10,000 followers, that regularly recommend tokens.</span></li>
             <li><span>Private accounts, small accounts and people who do not act as influencers are not rated. If one is included by mistake, it is removed completely.</span></li>
@@ -24,7 +24,7 @@ export default function EthicsPage() {
           </ul>
         </div>
         <div className="panel">
-          <span className="idx">02 / RIGHT OF REPLY</span>
+          <span className="idx">RIGHT OF REPLY</span>
           <ul className="list-dot">
             <li><span>Every rating action is notified 48 hours before publication, through the claimed profile or a mention on X.</span></li>
             <li><span>Claimed accounts can publish a reply on the rating page, add wallets with a signature and appeal.</span></li>
@@ -34,7 +34,7 @@ export default function EthicsPage() {
         </div>
       </section>
       <section className="box">
-        <div className="secbar"><h3>03 / Data we use, and data we never use</h3></div>
+        <div className="secbar"><h3>Data we use, and data we never use</h3></div>
         <div className="tbl-wrap">
           <table className="tbl">
             <thead><tr><th scope="col" style={{ width: '50%' }}>Used</th><th scope="col">Never used</th></tr></thead>
@@ -49,13 +49,13 @@ export default function EthicsPage() {
       </section>
       <section className="box split">
         <div className="panel">
-          <span className="idx">04 / LANGUAGE AND DISCLAIMER</span>
+          <span className="idx">LANGUAGE AND DISCLAIMER</span>
           <p>A rating is an opinion based on a published methodology, not a statement of fact about anyone's intent. We write "proven undisclosed", never "scammer".</p>
           <p>D is used only when the evidence is complete: a proven paid promotion, not disclosed, and a sale from a wallet the account declared itself.</p>
           <div className="reply" style={{ fontSize: '13.5px' }}>FIDES ratings are opinions based on public data and a published methodology. They are not statements of fact, not regulated credit ratings, and not investment advice.</div>
         </div>
         <div className="panel" id="takedown">
-          <span className="idx">05 / TAKEDOWN REQUEST</span>
+          <span className="idx">TAKEDOWN REQUEST</span>
           <p>For accounts that do not meet the coverage rules. A removed account disappears from every public page and from the sitemap.</p>
           <TakedownForm />
         </div>

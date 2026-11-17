@@ -4,7 +4,7 @@ export default function BuiltSection() {
     <section className="box" aria-labelledby="h-built">
       <div className="sec-head built-head">
         <div className="l">
-          <span className="idx">05 / HOW EVERY RATING IS BUILT</span>
+          <span className="idx">HOW EVERY RATING IS BUILT</span>
           <h2 id="h-built">Three instruments. <em>One committee's vote.</em></h2>
         </div>
         <div className="l">
