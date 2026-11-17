@@ -221,7 +221,7 @@ The public API serves a small SVG badge for each rated account. It is neutral wh
 |---|---|---|
 | 1 | Rebrand and Next.js frontend | Done |
 | 2 | Data, scorecard, public API, rating reports | Done (local database) |
-| 3 | Committee panel, notice, claims, replies, appeals | Not started |
+| 3 | Committee, notice, claims, replies, appeals, watch | Backend done and tested on a local database. `/claim` page covers sign-in, Login with X, replies and appeals; adding wallets and the internal committee panel are not built |
 | 4 | FIDES Desk, API keys, watchlist, tips | Not started |
 | 5 | Revision, security audit, launch | Not started |
 
