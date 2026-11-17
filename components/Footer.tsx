@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function Footer() {
@@ -5,7 +6,8 @@ export default function Footer() {
     <>
     <footer className="box">
       <div className="fc">
-        <Link className="brand" href="/" style={{ padding: '0', border: '0' }}>
+        <Link className="brand" href="/" aria-label="FIDES home" style={{ padding: '0', border: '0' }}>
+          <Image className="brand-logo" src="/fides-logo.png" alt="" width={36} height={35} />
           <span className="brand-name">FIDES<small>CREDIBILITY RATINGS</small></span>
         </Link>
         <p className="about">Independent credibility ratings for crypto influencers. Opinions built from public data and a published methodology.</p>

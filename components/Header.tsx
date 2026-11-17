@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import NavLinks from './NavLinks';
 
@@ -6,12 +7,7 @@ export default function Header() {
     <>
   <header className="top box">
     <Link className="brand" href="/" aria-label="FIDES home">
-      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
-        <rect x=".75" y=".75" width="38.5" height="38.5" fill="#7c1522" stroke="#2c2f35" strokeWidth="1.5"/>
-        <path d="M20 7v24M8 11.5h24M8 11.5 4.5 20h7zM32 11.5 28.5 20h7zM13 31h14" stroke="#f5f0e8" strokeWidth="1.6" fill="none" strokeLinejoin="round" strokeLinecap="round"/>
-        <path d="M4.5 20a3.5 2 0 0 0 7 0M28.5 20a3.5 2 0 0 0 7 0" fill="#f5f0e8"/>
-        <text x="20" y="27" textAnchor="middle" fontFamily="Fraunces,Georgia,serif" fontWeight="700" fontSize="11" fill="#f0c060">F</text>
-      </svg>
+      <Image className="brand-logo" src="/fides-logo.png" alt="" width={40} height={39} priority />
       <span className="brand-name">FIDES<small>CREDIBILITY RATINGS</small></span>
     </Link>
     <NavLinks><a className="ic" href="https://x.com/" target="_blank" rel="noopener" aria-label="X"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.8 3h3.2l-7 8 8.2 10h-6.4l-5-6.3L5 21H1.8l7.5-8.6L1.4 3h6.6l4.5 5.8zm-1.1 16.2h1.8L7.4 4.7H5.5z"/></svg></a>
