@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import TakedownForm from './TakedownForm';
 
 export default function EthicsPage() {
   return (
@@ -56,7 +57,7 @@ export default function EthicsPage() {
         <div className="panel" id="takedown">
           <span className="idx">05 / TAKEDOWN REQUEST</span>
           <p>For accounts that do not meet the coverage rules. A removed account disappears from every public page and from the sitemap.</p>
-          <p className="note">The request form opens soon. Until then no request channel is published.</p>
+          <TakedownForm />
         </div>
       </section>
     </>

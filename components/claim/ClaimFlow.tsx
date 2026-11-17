@@ -1,14 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api/v1`;
-const TOKEN_KEY = 'fides_session';
-
-/** Any injected EVM wallet (EIP-1193), for example MetaMask. */
-interface EvmProvider {
-  request(args: { method: string; params?: unknown[] }): Promise<unknown>;
-}
+import { apiCall, errorText, readToken, signInWithWallet, writeToken } from '@/lib/session';
 
 interface Notice { actionId: string; rating: string | null; publishAfter: string | null; message: string }
 interface Current {
@@ -17,13 +10,6 @@ interface Current {
 }
 interface Profile { handle: string; participating: boolean; notices: Notice[]; current: Current | null }
 
-const readToken = () => {
-  try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; }
-};
-const writeToken = (t: string | null) => {
-  try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
-};
-const utf8ToHex = (text: string) => '0x' + Array.from(new TextEncoder().encode(text), (b) => b.toString(16).padStart(2, '0')).join('');
 const fmt = (iso: string | null) => (iso ? new Date(iso).toUTCString() : '');
 
 export default function ClaimFlow() {
@@ -34,18 +20,7 @@ export default function ClaimFlow() {
   // The code and state X sends back are kept until the wallet is signed in.
   const pending = useRef<{ code: string; state: string } | null>(null);
 
-  const call = useCallback(async (path: string, tok: string | null, body?: unknown) => {
-    const res = await fetch(`${API}${path}`, {
-      method: body === undefined ? 'GET' : 'POST',
-      headers: { 'content-type': 'application/json', ...(tok ? { authorization: `Bearer ${tok}` } : {}) },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    const json = await res.json().catch(() => null);
-    return { ok: res.ok, status: res.status, json };
-  }, []);
-
-  const errorText = (r: { json: { message?: string | string[] } | null }) =>
-    [r.json?.message ?? 'Something went wrong. Try again.'].flat().join(' ');
+  const call = apiCall;
 
   const loadProfile = useCallback(async (tok: string) => {
     const r = await call('/claim/me', tok);
@@ -81,26 +56,15 @@ export default function ClaimFlow() {
   async function signIn() {
     setBusy(true);
     setMessage('');
-    try {
-      const wallet = (window as unknown as { ethereum?: EvmProvider }).ethereum;
-      if (!wallet) { setMessage('Install an EVM wallet such as MetaMask to sign in.'); return; }
-      const accounts = (await wallet.request({ method: 'eth_requestAccounts' })) as string[];
-      const walletAddress = accounts[0];
-      const n = await call('/auth/nonce', null, { walletAddress });
-      if (!n.ok) { setMessage(errorText(n)); return; }
-      // personal_sign: a signature only, no transaction and no fee.
-      const signature = (await wallet.request({ method: 'personal_sign', params: [utf8ToHex(n.json.message), walletAddress] })) as string;
-      const v = await call('/auth/verify', null, { walletAddress, nonce: n.json.nonce, signature });
-      if (!v.ok) { setMessage(errorText(v)); return; }
-      writeToken(v.json.token);
-      setToken(v.json.token);
-      await loadProfile(v.json.token);
-      await completeX(v.json.token);
-    } catch {
-      setMessage('Wallet request was cancelled.');
-    } finally {
-      setBusy(false);
+    const r = await signInWithWallet();
+    if ('error' in r) {
+      setMessage(r.error);
+    } else {
+      setToken(r.token);
+      await loadProfile(r.token);
+      await completeX(r.token);
     }
+    setBusy(false);
   }
 
   async function loginWithX() {

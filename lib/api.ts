@@ -182,6 +182,20 @@ const enc = encodeURIComponent;
 export const getReport = (handle: string) => getStatus<Report>(`/ratings/${enc(handle)}`);
 export const getHistory = (handle: string) => getStatus<HistoryRow[]>(`/ratings/${enc(handle)}/history`);
 
+/** Data for the share card of one published rating action. */
+export interface ActionCardData {
+  actionId: string;
+  type: ActionType;
+  handle: string;
+  displayName: string | null;
+  rating: string | null;
+  band: Band | null;
+  previousRating: string | null;
+  outlook: string | null;
+  publishedAt: string;
+}
+export const getActionCard = (actionId: string) => getStatus<ActionCardData>(`/actions/${enc(actionId)}`);
+
 export interface RatingFilters {
   band?: string;
   rating?: string;

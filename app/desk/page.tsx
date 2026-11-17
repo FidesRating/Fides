@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
+import DeskFlow from '@/components/desk/DeskFlow';
 import PageHeader from '@/components/PageHeader';
 
 export const metadata: Metadata = {
   title: 'FIDES Desk',
-  description: 'Holding the token opens the full data and early alerts. It never changes a rating.',
+  description: 'Holding the token opens the full data and the Desk. It never changes a rating.',
 };
 
 export default function DeskPage() {
@@ -13,11 +14,9 @@ export default function DeskPage() {
         crumb="FIDES Desk"
         chip="FOR THE FIDES DESK"
         title={<>See the evidence first. <em>Never touch the rating.</em></>}
-        sub="Holding the token opens the full data and early alerts. It does not, and cannot, change a rating."
+        sub="Holding the token opens the full data and the Desk. It does not, and cannot, change a rating."
       />
-      <section className="box empty-state">
-        <p>The FIDES Desk opens soon.</p>
-      </section>
+      <DeskFlow />
     </div>
   );
 }
