@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: { default: 'FIDES | Credibility Ratings for Crypto Influencers', template: '%s | FIDES' },
   description: DESCRIPTION,
   openGraph: { title: 'FIDES: Rated Before You Trust', description: DESCRIPTION, siteName: 'FIDES', type: 'website' },
-  twitter: { card: 'summary_large_image', title: 'FIDES: Rated Before You Trust', description: DESCRIPTION },
+  twitter: { card: 'summary_large_image', site: '@FIDESRatings', title: 'FIDES: Rated Before You Trust', description: DESCRIPTION },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
