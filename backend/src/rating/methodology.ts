@@ -52,7 +52,7 @@ export const RULES = {
   rugCap: 'CCC+',
   noWalletCap: 'A',
   noDataPillarScore: 50,
-  minFollowers: 10_000, // batas "tokoh publik" di dunia kripto
+  minFollowers: 0, // TEMPORARY for testing. Restore to 10_000 (batas "tokoh publik" di dunia kripto) before launch.
   minCommitteeVotes: 3,
   maxNotchesFromScorecard: 1,
   noticeHours: 48,

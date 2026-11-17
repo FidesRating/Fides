@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import InfluencerDetail from './InfluencerDetail';
-import { Ctx, Hint, MIN_FOLLOWERS, Section, Table, optVal, panel, row, shorten, stamp, val } from './shared';
+import { Ctx, Hint, MIN_FOLLOWERS, followerHint, Section, Table, optVal, panel, row, shorten, stamp, val } from './shared';
 
 interface InfluencerRow {
   id: string; handle: string; displayName: string | null; status: string;
@@ -38,7 +38,7 @@ export function InfluencersPanel({ ctx, isAdmin, onCount }: { ctx: Ctx; isAdmin:
           >
             <label>X handle<input name="handle" placeholder="example_user" required maxLength={16} pattern="@?[A-Za-z0-9_]{1,15}" /><Hint>Without the @ is fine. 1 to 15 letters, numbers or underscores.</Hint></label>
             <label>Display name<input name="displayName" placeholder="Shown on the rating page" required maxLength={60} /><Hint>Type it as shown on their X profile. It is not filled in automatically.</Hint></label>
-            <label>Followers<input name="followers" type="number" min={MIN_FOLLOWERS} step={1} placeholder="Current follower count" required /><Hint>Minimum {MIN_FOLLOWERS.toLocaleString('en-US')} followers. Accounts below this are not covered.</Hint></label>
+            <label>Followers<input name="followers" type="number" min={MIN_FOLLOWERS} step={1} placeholder="Current follower count" required /><Hint>{followerHint()}</Hint></label>
             <label>Avatar URL (optional)<input name="avatarUrl" type="url" placeholder="https://" /><Hint>Link to the profile picture. Leave empty if unsure.</Hint></label>
             <div className="full"><button className="btn primary" type="submit" disabled={ctx.busy}>Add influencer</button></div>
           </form>

@@ -13,7 +13,11 @@ export const panel: React.CSSProperties = { padding: 22, display: 'grid', gap: 1
 export const row: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' };
 
 /** Coverage rule: the server rejects public accounts below this follower count. Keep it equal to RULES.minFollowers in the backend. */
-export const MIN_FOLLOWERS = 10_000;
+// TEMPORARY for testing. Restore to 10_000 before launch, together with RULES.minFollowers in the backend.
+export const MIN_FOLLOWERS = 0;
+
+/** Help text for a follower field, shown under it. */
+export const followerHint = () => (MIN_FOLLOWERS > 0 ? `Minimum ${MIN_FOLLOWERS.toLocaleString('en-US')} followers. Accounts below this are not covered.` : 'No follower minimum while testing.');
 
 /** Small help line under a form field. */
 export const Hint = ({ children }: { children: React.ReactNode }) => (

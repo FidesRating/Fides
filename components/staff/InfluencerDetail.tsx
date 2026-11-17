@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { CHAINS, Ctx, Hint, MIN_FOLLOWERS, Section, SnapshotForm, Table, checked, num, optNum, optVal, panel, row, shorten, stamp, val } from './shared';
+import { CHAINS, Ctx, Hint, MIN_FOLLOWERS, followerHint, Section, SnapshotForm, Table, checked, num, optNum, optVal, panel, row, shorten, stamp, val } from './shared';
 
 interface Account { id: string; platform: string; handle: string; followers: number | null; claimedAt: string | null; claimPending: boolean }
 interface WalletRow { id: string; chainKey: string; address: string; method: string; sourceUrl: string | null }
@@ -87,7 +87,7 @@ export default function InfluencerDetail({ ctx, id, isAdmin, onChanged, onClose 
             </Table>
             <form className="form" onSubmit={async (e) => { e.preventDefault(); const f = e.currentTarget; const r = await act(`/admin/influencers/${id}/accounts`, { handle: val(f, 'handle'), followers: Number(val(f, 'followers')) }, 'POST', 'Account added.'); if (r.ok) f.reset(); }}>
               <label>Another X handle<input name="handle" required maxLength={16} pattern="@?[A-Za-z0-9_]{1,15}" /></label>
-              <label>Followers<input name="followers" type="number" min={MIN_FOLLOWERS} required /><Hint>Minimum {MIN_FOLLOWERS.toLocaleString('en-US')} followers.</Hint></label>
+              <label>Followers<input name="followers" type="number" min={MIN_FOLLOWERS} required /><Hint>{followerHint()}</Hint></label>
               <div className="full"><button className="btn" disabled={ctx.busy}>Add account</button></div>
             </form>
           </Section>
