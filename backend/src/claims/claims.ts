@@ -13,7 +13,8 @@ import { RULES } from '../rating/methodology';
 import { formatActionId } from '../public/presenter';
 import { MembersModule } from '../members/members.module';
 import { MembersService } from '../members/members.service';
-import { HttpXOAuth, makePkce, X_OAUTH, XOAuthAdapter } from './x-oauth';
+import { REAPPLY_DAYS } from '../applications/applications';
+import { HttpXOAuth, makePkce, X_OAUTH, XOAuthAdapter, XProfile } from './x-oauth';
 
 export class XCallbackDto {
   @IsString() @MaxLength(512) code: string;
@@ -92,18 +93,44 @@ export class ClaimsService {
     const used = await this.prisma.authNonce.updateMany({ where: { id: row.id, usedAt: null }, data: { usedAt: new Date() } });
     if (used.count !== 1) throw new UnauthorizedException('This login request was already used');
 
-    const handle = await this.x.verifiedUsername(dto.code, row.message);
-    const account = await this.prisma.socialAccount.findUnique({ where: { platform_handle: { platform: 'x', handle } }, include: { influencer: true } });
-    if (!account || account.influencer.status === 'removed') throw new NotFoundException(`@${handle} is not covered by FIDES`);
-    if (account.claimedById) throw new ConflictException(`@${handle} is already claimed`);
+    const profile = await this.x.verifiedProfile(dto.code, row.message);
+    const handle = profile.username;
     const mine = await this.prisma.socialAccount.findUnique({ where: { claimedById: member.id } });
     if (mine) throw new ConflictException(`This wallet already manages @${mine.handle}`);
+    const account = await this.prisma.socialAccount.findUnique({ where: { platform_handle: { platform: 'x', handle } }, include: { influencer: true } });
+    if (account?.influencer.status === 'removed') throw new NotFoundException(`@${handle} is not covered by FIDES`);
+
+    if (!account) return this.startApplication(member, profile);
+    if (account.claimedById) throw new ConflictException(`@${handle} is already claimed`);
 
     await this.prisma.$transaction([
       this.prisma.socialAccount.update({ where: { id: account.id }, data: { claimedById: member.id, claimedAt: new Date() } }),
       this.prisma.influencer.update({ where: { id: account.influencerId }, data: { participating: true } }),
     ]);
     return { status: 'claimed', handle, message: 'Profile claimed. Your rating is now marked Participating.' };
+  }
+
+  /**
+   * The account is not covered yet. The verified X login proves the member owns it, so the member can apply for coverage.
+   * The identity and follower count come from X, never from the form. A rejected application can be repeated after a cooldown.
+   */
+  private async startApplication(member: Member, profile: XProfile) {
+    const { username: handle } = profile;
+    if (profile.followers < RULES.minFollowers) {
+      throw new BadRequestException(`FIDES only covers public accounts with at least ${RULES.minFollowers.toLocaleString('en')} followers`);
+    }
+    const open = await this.prisma.application.findFirst({ where: { handle, status: { in: ['draft', 'submitted'] }, NOT: { memberId: member.id } } });
+    if (open) throw new ConflictException(`An application for @${handle} is already open`);
+
+    const latest = await this.prisma.application.findFirst({ where: { memberId: member.id }, orderBy: { createdAt: 'desc' } });
+    if (latest?.status === 'submitted') throw new ConflictException('Your application is already under review');
+    if (latest?.status === 'rejected' && latest.decidedAt && Date.now() < latest.decidedAt.getTime() + REAPPLY_DAYS * 86400_000) {
+      throw new ConflictException(`A rejected application can be repeated ${REAPPLY_DAYS} days after the decision`);
+    }
+    const data = { handle, displayName: profile.name.slice(0, 60), avatarUrl: profile.avatarUrl, followers: profile.followers };
+    if (latest?.status === 'draft') await this.prisma.application.update({ where: { id: latest.id }, data });
+    else await this.prisma.application.create({ data: { memberId: member.id, ...data } });
+    return { status: 'application', handle, message: `@${handle} is not covered yet. Fill in the application below.` };
   }
 
   /** Dashboard for a claimed account: actions in the notice period, the published rating, wallets. */

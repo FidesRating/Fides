@@ -233,3 +233,64 @@ export function DraftsPanel({ ctx }: { ctx: Ctx }) {
     </div>
   );
 }
+
+interface ApplicationRow {
+  id: string; handle: string; displayName: string; followers: number; status: string; evidenceUrls: string[];
+  consentAt: string | null; decisionNote: string | null; createdAt: string;
+}
+
+export function ApplicationsPanel({ ctx }: { ctx: Ctx }) {
+  const [rows, setRows] = useState<ApplicationRow[]>([]);
+  const [status, setStatus] = useState('submitted');
+  const load = useCallback(async () => {
+    const r = await ctx.call(`/admin/applications?status=${status}`);
+    if (r.ok) setRows(r.json);
+  }, [ctx, status]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [status]);
+
+  return (
+    <div className="box" style={panel}>
+      <Section
+        title={`Applications (${rows.length})`}
+        hint="An account owner proved the handle with Login with X. Followers and name come from X. Open each post and check that the account regularly gives token calls. Accepting creates the account, already claimed. A rejection note is shown to the applicant."
+      >
+        <div style={row}>
+          {['submitted', 'accepted', 'rejected'].map((s) => (
+            <button key={s} className={`btn${status === s ? ' primary' : ''}`} onClick={() => setStatus(s)}>{s}</button>
+          ))}
+        </div>
+        {rows.length === 0 ? <p>No applications here.</p> : (
+          <Table head={['Account', 'Followers', 'Evidence posts', 'Applied', 'Decision']}>
+            {rows.map((a) => (
+              <tr key={a.id}>
+                <td><a href={`https://x.com/${a.handle}`} target="_blank" rel="noreferrer">@{a.handle}</a><br />{a.displayName}</td>
+                <td>{a.followers.toLocaleString('en-US')}</td>
+                <td className="wrap">{a.evidenceUrls.map((u, i) => <div key={u}><a href={u} target="_blank" rel="noreferrer">Post {i + 1}</a></div>)}</td>
+                <td>{stamp(a.createdAt)}</td>
+                <td>
+                  {a.status === 'submitted' ? (
+                    <form
+                      style={row}
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const f = e.currentTarget;
+                        const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+                        const r = await ctx.call(`/admin/applications/${a.id}/review`, { status: submitter?.value, note: optVal(f, 'note') }, 'POST', submitter?.value === 'accepted' ? 'Accepted. The account was created and claimed.' : 'Rejected. The applicant sees the note.');
+                        if (r.ok) load();
+                      }}
+                    >
+                      <input name="note" placeholder="Note for the applicant (required to reject)" maxLength={1000} style={{ width: 220 }} />
+                      <button className="btn primary" value="accepted" formNoValidate disabled={ctx.busy}>Accept</button>
+                      <button className="btn" value="rejected" formNoValidate disabled={ctx.busy}>Reject</button>
+                    </form>
+                  ) : (a.decisionNote ?? '-')}
+                </td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </Section>
+    </div>
+  );
+}

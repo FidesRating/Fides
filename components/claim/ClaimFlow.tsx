@@ -9,12 +9,17 @@ interface Current {
   appeal: { status: string } | null; appealDeadline: string | null;
 }
 interface Profile { handle: string; participating: boolean; notices: Notice[]; current: Current | null }
+interface Application {
+  handle: string; displayName: string; followers: number; status: 'draft' | 'submitted' | 'accepted' | 'rejected';
+  decisionNote: string | null; decidedAt: string | null;
+}
 
 const fmt = (iso: string | null) => (iso ? new Date(iso).toUTCString() : '');
 
 export default function ClaimFlow() {
   const [token, setToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [application, setApplication] = useState<Application | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   // The code and state X sends back are kept until the wallet is signed in.
@@ -26,6 +31,13 @@ export default function ClaimFlow() {
     const r = await call('/claim/me', tok);
     if (r.status === 401) { writeToken(null); setToken(null); return; }
     setProfile(r.ok ? r.json : null);
+    // Not a covered account yet: show the application, if there is one.
+    if (!r.ok) {
+      const a = await call('/claim/application', tok);
+      setApplication(a.ok ? a.json : null);
+    } else {
+      setApplication(null);
+    }
   }, [call]);
 
   const completeX = useCallback(async (tok: string) => {
@@ -89,6 +101,7 @@ export default function ClaimFlow() {
     const tok = token;
     setToken(null);
     setProfile(null);
+    setApplication(null);
     setMessage('');
     await signOutSession(tok);
   }
@@ -111,14 +124,64 @@ export default function ClaimFlow() {
         </>
       )}
 
-      {token && !profile && (
+      {token && !profile && (!application || application.status === 'rejected') && (
         <>
           <h2>2. Log in with X</h2>
-          <p>X confirms which account you control. FIDES reads only your username.</p>
+          <p>X confirms which account you control. FIDES reads only your username, name, picture and follower count.</p>
+          <p>If your account is already covered, you claim it. If it is not covered yet, you can apply for coverage. You can only apply for the account you log in with.</p>
+          {application?.status === 'rejected' && (
+            <p role="status">Your last application for @{application.handle} was not accepted{application.decisionNote ? `: ${application.decisionNote}` : '.'} A new application is possible 30 days after the decision.</p>
+          )}
           <div className="btns">
             <button className="btn primary" disabled={busy} onClick={loginWithX}>Log in with X</button>
             <button className="btn" onClick={signOut}>Sign out</button>
           </div>
+        </>
+      )}
+
+      {token && !profile && application?.status === 'draft' && (
+        <>
+          <h2>3. Apply for coverage</h2>
+          <p>
+            Verified by X: <b>{application.displayName}</b> (@{application.handle}), {application.followers.toLocaleString('en-US')} followers.
+            This part cannot be edited.
+          </p>
+          <form
+            className="form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const data = new FormData(e.currentTarget);
+              const evidenceUrls = ['e1', 'e2', 'e3', 'e4', 'e5'].map((k) => String(data.get(k) ?? '').trim()).filter(Boolean);
+              setBusy(true);
+              const r = await call('/claim/application/submit', token, { evidenceUrls, consent: data.get('consent') === 'on' });
+              setBusy(false);
+              setMessage(r.ok ? r.json.message : errorText(r));
+              if (r.ok && token) await loadProfile(token);
+            }}
+          >
+            <p className="full">Link 3 to 5 public X posts where you recommended a token. Staff use them to check that the account regularly gives token calls.</p>
+            <label className="full">Post 1<input name="e1" type="url" placeholder="https://x.com/yourname/status/..." required /></label>
+            <label className="full">Post 2<input name="e2" type="url" placeholder="https://x.com/yourname/status/..." required /></label>
+            <label className="full">Post 3<input name="e3" type="url" placeholder="https://x.com/yourname/status/..." required /></label>
+            <label className="full">Post 4 (optional)<input name="e4" type="url" placeholder="https://x.com/yourname/status/..." /></label>
+            <label className="full">Post 5 (optional)<input name="e5" type="url" placeholder="https://x.com/yourname/status/..." /></label>
+            <label className="full" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, textTransform: 'none', letterSpacing: 0 }}>
+              <input name="consent" type="checkbox" required style={{ width: 'auto', marginTop: 4 }} />
+              <span>I understand that a FIDES rating is an opinion based on public data and a published methodology. I will get a notice at least 48 hours before publication, and I can reply and appeal once. Applying does not change my rating.</span>
+            </label>
+            <div className="full btns">
+              <button className="btn primary" disabled={busy}>Submit application</button>
+              <button type="button" className="btn" onClick={signOut}>Sign out</button>
+            </div>
+          </form>
+        </>
+      )}
+
+      {token && !profile && application?.status === 'submitted' && (
+        <>
+          <h2>Application under review</h2>
+          <p>Your application for @{application.handle} was sent. Staff review the evidence. The decision will appear on this page, so sign in again later to see it.</p>
+          <div className="btns"><button className="btn" onClick={signOut}>Sign out</button></div>
         </>
       )}
 

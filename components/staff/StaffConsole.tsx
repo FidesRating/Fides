@@ -2,16 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiCall, errorText, readToken, signInWithWallet, signOutSession, writeToken } from '@/lib/session';
-import { DraftsPanel, InfluencersPanel, TakedownPanel, TipsPanel } from './AnalystPanels';
+import { ApplicationsPanel, DraftsPanel, InfluencersPanel, TakedownPanel, TipsPanel } from './AnalystPanels';
 import { CommitteePanel } from './CommitteePanel';
 import { Ctx, panel } from './shared';
 
 type Role = 'analyst' | 'committee' | 'admin';
 interface StaffMe { role: Role; walletAddress: string }
-type Tab = 'influencers' | 'drafts' | 'tips' | 'takedowns' | 'committee';
+type Tab = 'influencers' | 'applications' | 'drafts' | 'tips' | 'takedowns' | 'committee';
 
 const TABS: { id: Tab; label: string; roles: Role[] }[] = [
   { id: 'influencers', label: 'Influencers', roles: ['analyst', 'admin'] },
+  { id: 'applications', label: 'Applications', roles: ['analyst', 'admin'] },
   { id: 'drafts', label: 'Rating drafts', roles: ['analyst', 'admin'] },
   { id: 'tips', label: 'Desk tips', roles: ['analyst', 'admin'] },
   { id: 'takedowns', label: 'Takedowns', roles: ['analyst', 'admin'] },
@@ -125,6 +126,7 @@ export default function StaffConsole() {
           </div>
 
           {tab === 'influencers' && isAnalyst && <InfluencersPanel ctx={ctx} isAdmin={me.role === 'admin'} onCount={setInfluencerCount} />}
+          {tab === 'applications' && isAnalyst && <ApplicationsPanel ctx={ctx} />}
           {tab === 'drafts' && isAnalyst && <DraftsPanel ctx={ctx} />}
           {tab === 'tips' && isAnalyst && <TipsPanel ctx={ctx} />}
           {tab === 'takedowns' && isAnalyst && <TakedownPanel ctx={ctx} isAdmin={me.role === 'admin'} />}

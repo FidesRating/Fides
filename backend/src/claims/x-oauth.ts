@@ -4,8 +4,15 @@ import { createHash, randomBytes } from 'crypto';
 /** Adapter for "Login with X". It only proves who controls an X account; no posts are read. */
 export interface XOAuthAdapter {
   authorizeUrl(state: string, codeChallenge: string): string;
-  /** Exchanges the authorization code and returns the verified X username (lowercase, no @). */
-  verifiedUsername(code: string, codeVerifier: string): Promise<string>;
+  /** Exchanges the authorization code and returns the verified X profile. The username is lowercase, without @. */
+  verifiedProfile(code: string, codeVerifier: string): Promise<XProfile>;
+}
+
+export interface XProfile {
+  username: string;
+  name: string;
+  followers: number;
+  avatarUrl: string | null;
 }
 
 export const X_OAUTH = Symbol('X_OAUTH');
@@ -36,7 +43,7 @@ export class HttpXOAuth implements XOAuthAdapter {
     return `${process.env.X_AUTH_URL || 'https://x.com/i/oauth2/authorize'}?${q}`;
   }
 
-  async verifiedUsername(code: string, codeVerifier: string) {
+  async verifiedProfile(code: string, codeVerifier: string): Promise<XProfile> {
     const { clientId, redirectUri, secret, api } = this.cfg();
     const headers: Record<string, string> = { 'content-type': 'application/x-www-form-urlencoded' };
     if (secret) headers.authorization = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
@@ -46,9 +53,16 @@ export class HttpXOAuth implements XOAuthAdapter {
     });
     const token = tokenRes.ok ? ((await tokenRes.json()) as { access_token?: string }).access_token : undefined;
     if (!token) throw new UnauthorizedException('X did not confirm this login. Try again.');
-    const meRes = await fetch(`${api}/2/users/me`, { headers: { authorization: `Bearer ${token}` } });
-    const username = meRes.ok ? ((await meRes.json()) as { data?: { username?: string } }).data?.username : undefined;
-    if (!username) throw new UnauthorizedException('Could not read your X account. Try again.');
-    return username.toLowerCase();
+    const meRes = await fetch(`${api}/2/users/me?user.fields=public_metrics,profile_image_url`, { headers: { authorization: `Bearer ${token}` } });
+    const data = meRes.ok
+      ? ((await meRes.json()) as { data?: { username?: string; name?: string; profile_image_url?: string; public_metrics?: { followers_count?: number } } }).data
+      : undefined;
+    if (!data?.username) throw new UnauthorizedException('Could not read your X account. Try again.');
+    return {
+      username: data.username.toLowerCase(),
+      name: data.name || data.username,
+      followers: data.public_metrics?.followers_count ?? 0,
+      avatarUrl: data.profile_image_url ?? null,
+    };
   }
 }

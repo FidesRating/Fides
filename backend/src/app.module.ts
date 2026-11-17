@@ -8,6 +8,7 @@ import { MembersModule } from './members/members.module';
 import { PublicModule } from './public/public';
 import { AdminModule } from './admin/admin';
 import { CommitteeModule } from './committee/committee';
+import { ApplicationsModule } from './applications/applications';
 import { ClaimsModule } from './claims/claims';
 import { ResearchModule } from './research/research';
 import { SurveillanceModule } from './queue/surveillance';
@@ -37,6 +38,7 @@ const redisUrl = new URL(process.env.REDIS_URL || 'redis://localhost:6379');
     AdminModule,
     CommitteeModule,
     ClaimsModule,
+    ApplicationsModule,
     ResearchModule,
     SurveillanceModule,
     WatchlistModule,
