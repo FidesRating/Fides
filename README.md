@@ -35,7 +35,7 @@ FIDES replaces reputation by volume with a rating that can be checked and answer
 * **Scorecard, Then Committee:** A server-side scorecard turns four pillars into a 0 – 100 score. A human Rating Committee decides the final rating and may move at most one notch from the scorecard, with a published reason.
 * **Right of Reply:** Every rating action is notified to the rated account 48 hours before publication. Claimed accounts can reply on the rating page and appeal once per action within 14 days.
 * **Evidence You Can Inspect:** Every call and every paid promotion keeps its source link, capture time, content hash and the analyst who captured it.
-* **Access Is Not Influence:** Holding the $FIDES token opens the FIDES Desk (full data, alerts, API, tips). It never changes a rating, a score or a committee decision.
+* **Access Is Not Influence:** Holding the $FIDES token opens the FIDES Desk (full data, watchlist, API, tips). It never changes a rating, a score or a committee decision.
 
 ---
 
@@ -222,7 +222,7 @@ The public API serves a small SVG badge for each rated account. It is neutral wh
 | 1 | Rebrand and Next.js frontend | Done |
 | 2 | Data, scorecard, public API, rating reports | Done (local database) |
 | 3 | Committee, notice, claims, replies, appeals, watch | Backend done and tested on a local database. `/claim` page covers sign-in, Login with X, replies and appeals; adding wallets and the internal committee panel are not built |
-| 4 | FIDES Desk, API keys, watchlist, tips | Not started |
+| 4 | FIDES Desk, API keys, watchlist, tips, share card, takedown form | Built and tested on a local database (no outbound alerts, no analytics events). Not deployed. The holder gate stays closed until the token contract, RPC URL and threshold are set |
 | 5 | Revision, security audit, launch | Not started |
 
 ---
