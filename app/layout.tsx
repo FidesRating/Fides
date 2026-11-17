@@ -15,11 +15,10 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
-  title: { default: 'FIDES — Credibility Ratings for Crypto Influencers', template: '%s — FIDES' },
+  title: { default: 'FIDES | Credibility Ratings for Crypto Influencers', template: '%s | FIDES' },
   description: DESCRIPTION,
   openGraph: { title: 'FIDES: Rated Before You Trust', description: DESCRIPTION, siteName: 'FIDES', type: 'website' },
   twitter: { card: 'summary_large_image', title: 'FIDES: Rated Before You Trust', description: DESCRIPTION },
-  icons: { icon: '/favicon.svg' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
