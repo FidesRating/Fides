@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { apiCall, errorText, readToken, signInWithWallet, writeToken } from '@/lib/session';
+import { apiCall, errorText, readToken, signInWithWallet, signOutSession, writeToken } from '@/lib/session';
 
 interface Me { walletAddress: string; tokenBalance: number; minBalance: number | null; isHolder: boolean }
 interface WatchItem { handle: string; displayName: string | null; current: { rating: string | null; outlook: string | null; watch: string | null } | null }
@@ -53,12 +53,13 @@ export default function DeskFlow() {
     setBusy(false);
   }
 
-  function signOut() {
-    writeToken(null);
+  async function signOut() {
+    const tok = token;
     setToken(null);
     setMe(null);
     setNewKey('');
     setMessage('');
+    await signOutSession(tok);
   }
 
   /** Runs one API call, shows the outcome, and refreshes the lists. */

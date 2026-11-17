@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiCall, errorText, readToken, signInWithWallet, writeToken } from '@/lib/session';
+import { apiCall, errorText, readToken, signInWithWallet, signOutSession, writeToken } from '@/lib/session';
 
 interface Notice { actionId: string; rating: string | null; publishAfter: string | null; message: string }
 interface Current {
@@ -85,11 +85,12 @@ export default function ClaimFlow() {
     if (r.ok) await loadProfile(token);
   }
 
-  function signOut() {
-    writeToken(null);
+  async function signOut() {
+    const tok = token;
     setToken(null);
     setProfile(null);
     setMessage('');
+    await signOutSession(tok);
   }
 
   const onForm = (path: string, fields: string[], done: string) => (e: React.FormEvent<HTMLFormElement>) => {

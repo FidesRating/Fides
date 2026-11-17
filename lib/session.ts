@@ -28,6 +28,21 @@ export async function apiCall(path: string, token: string | null, body?: unknown
 
 export const errorText = (r: ApiResult) => [r.json?.message ?? 'Something went wrong. Try again.'].flat().join(' ');
 
+/**
+ * Signs out: the server session is deleted, the stored token is cleared, and the wallet is asked to revoke this
+ * site's access to its accounts (MetaMask supports this; other wallets may ignore it, which is harmless).
+ */
+export async function signOutSession(token: string | null): Promise<void> {
+  if (token) await apiCall('/auth/logout', token, {}).catch(() => undefined);
+  writeToken(null);
+  try {
+    const wallet = (window as unknown as { ethereum?: EvmProvider }).ethereum;
+    await wallet?.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] });
+  } catch {
+    /* the wallet does not support revoking, or the user dismissed it */
+  }
+}
+
 const utf8ToHex = (text: string) => '0x' + Array.from(new TextEncoder().encode(text), (b) => b.toString(16).padStart(2, '0')).join('');
 
 /** Signs in with an EVM wallet (a signature only, no transaction and no fee). Returns the session token or a message to show. */
