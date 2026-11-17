@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import ClaimFlow from '@/components/claim/ClaimFlow';
 import PageHeader from '@/components/PageHeader';
 
 export const metadata: Metadata = {
@@ -13,11 +14,9 @@ export default function ClaimPage() {
         crumb="Claim your profile"
         chip="CLAIM YOUR PROFILE"
         title={<>Answer your <em>rating.</em></>}
-        sub="Claimed accounts see the notice before publication, add wallets with a signature, reply on the rating page and appeal once per rating action."
+        sub="Claimed accounts see the notice before publication, reply on the rating page and appeal once per rating action."
       />
-      <section className="box empty-state">
-        <p>Profile claims open soon.</p>
-      </section>
+      <ClaimFlow />
     </div>
   );
 }
