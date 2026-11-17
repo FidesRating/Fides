@@ -427,6 +427,168 @@ describe('profile claim through Login with X', () => {
   });
 });
 
+describe('Desk watchlist (in-app, holders only)', () => {
+  const ok = (s: number) => s === 200 || s === 201;
+  const saved = { c: process.env.TOKEN_CONTRACT, r: process.env.TOKEN_RPC_URL, m: process.env.MEMBER_MIN_BALANCE };
+  let holder = '';
+  let nonHolder = '';
+
+  const session = async (label: string, balance: number) => {
+    const member = await prisma.member.create({ data: { walletAddress: randomAddress(), tokenBalance: balance } });
+    const token = `test-watch-${label}`;
+    await prisma.memberSession.create({ data: { memberId: member.id, tokenHash: createHash('sha256').update(token).digest('hex'), expiresAt: new Date(Date.now() + 86400_000) } });
+    return token;
+  };
+
+  before(async () => {
+    // The holder gate is configured; the member row carries the balance the gate compares with the threshold.
+    process.env.TOKEN_CONTRACT = '0x3333333333333333333333333333333333333333';
+    process.env.TOKEN_RPC_URL = 'https://rpc.example.test';
+    process.env.MEMBER_MIN_BALANCE = '100';
+    holder = await session('holder', 500);
+    nonHolder = await session('nonholder', 5);
+  });
+
+  after(() => {
+    for (const [k, v] of [['TOKEN_CONTRACT', saved.c], ['TOKEN_RPC_URL', saved.r], ['MEMBER_MIN_BALANCE', saved.m]] as const) {
+      if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    }
+  });
+
+  const call = (path: string, key: string | undefined, method = 'GET') => api(`/me/watchlist${path}`, { method, key });
+
+  test('login is required (401) and a member below the threshold is refused (403)', async () => {
+    assert.equal((await call('', undefined)).status, 401);
+    assert.equal((await call('', nonHolder)).status, 403);
+    assert.equal((await call('/lunar_alpha', nonHolder, 'PUT')).status, 403);
+  });
+
+  test('a holder saves an account once, sees its published rating, and can remove it', async () => {
+    assert.equal((await call('/no_such_account', holder, 'PUT')).status, 404);
+    assert.ok(ok((await call('/lunar_alpha', holder, 'PUT')).status));
+    assert.ok(ok((await call('/@Lunar_Alpha', holder, 'PUT')).status), 'adding twice is harmless');
+    const list = await call('', holder);
+    assert.equal(list.status, 200);
+    assert.equal(list.json.length, 1);
+    assert.equal(list.json[0].handle, 'lunar_alpha');
+    assert.equal(list.json[0].current.rating, 'BBB');
+    assert.equal((await call('/lunar_alpha', holder, 'DELETE')).status, 200);
+    assert.equal((await call('', holder)).json.length, 0);
+  });
+
+  test('the feed only shows published actions: an account in draft shows no rating and no action', async () => {
+    const edge = (await api('/admin/influencers', { key: KEYS.analyst })).json.find((i: any) => i.handle === 'edge_acct');
+    const draft = await api(`/admin/influencers/${edge.id}/actions`, { method: 'POST', key: KEYS.analyst });
+    assert.ok(ok(draft.status), draft.text);
+    await call('/edge_acct', holder, 'PUT');
+    await call('/lunar_alpha', holder, 'PUT');
+
+    const list = await call('', holder);
+    assert.equal(list.json.find((i: any) => i.handle === 'edge_acct').current, null, 'no rating before publication');
+    const feed = await call('/feed', holder);
+    assert.equal(feed.status, 200);
+    assert.ok(feed.json.length >= 1);
+    assert.ok(feed.json.every((a: any) => a.handle !== 'edge_acct'), 'a draft action never appears');
+    assert.ok(feed.json.every((a: any) => ['handle', 'actionId', 'rating', 'outlook', 'type', 'displayName', 'previousRating', 'publishedAt'].every((k) => k in a)));
+    for (const forbidden of ['votes', 'staffId', 'inputs', 'analystId', 'scorecardRating']) assert.ok(!feed.text.includes(forbidden), `feed leaks ${forbidden}`);
+
+    const raw = await fetch(`${origin}/api/v1/me/watchlist/feed`, { headers: { authorization: `Bearer ${holder}` } });
+    assert.equal(raw.headers.get('cache-control'), 'private, no-store');
+  });
+
+  test('a removed (taken down) account disappears from the watchlist', async () => {
+    const inf = await prisma.influencer.findFirstOrThrow({ where: { handle: 'claim_acct' } });
+    assert.ok(ok((await call('/claim_acct', holder, 'PUT')).status));
+    await prisma.influencer.update({ where: { id: inf.id }, data: { status: 'removed', removedAt: new Date() } });
+    assert.ok(!(await call('', holder)).text.includes('claim_acct'));
+    assert.equal((await call('/claim_acct', holder, 'PUT')).status, 404, 'a removed account cannot be added');
+  });
+
+  test('API keys: only holders create them, a key opens the full call record, and a revoked key does not', async () => {
+    assert.equal((await api('/me/api-keys', { method: 'POST', key: nonHolder, body: { label: 'x' } })).status, 403);
+    const made = await api('/me/api-keys', { method: 'POST', key: holder, body: { label: 'test key' } });
+    assert.ok(ok(made.status), made.text);
+    const calls = (apiKey?: string) => fetch(`${origin}/api/v1/ratings/lunar_alpha/calls`, { headers: apiKey ? { 'x-api-key': apiKey } : {} }).then((r) => r.json());
+
+    assert.equal((await calls()).fullAccess, false, 'anonymous readers get the latest 10 calls');
+    assert.equal((await calls(made.json.key)).fullAccess, true, 'a holder key opens the full record');
+    assert.ok(ok((await api(`/me/api-keys/${made.json.id}`, { method: 'DELETE', key: holder })).status));
+    assert.equal((await calls(made.json.key)).fullAccess, false, 'a revoked key is refused');
+  });
+
+  test('tips: a holder sends evidence, analysts see it without the sender, and a non-holder is refused', async () => {
+    process.env.TOKEN_GATE_MOCK_BALANCE = '500';
+    try {
+      const body = { handle: 'lunar_alpha', kind: 'other', evidenceUrl: 'https://example.com/desk-tip-evidence', note: 'desk tip probe' };
+      assert.equal((await api('/tips', { method: 'POST', key: nonHolder, body })).status, 403);
+      const sent = await api('/tips', { method: 'POST', key: holder, body });
+      assert.ok(ok(sent.status), sent.text);
+      const queue = await api('/admin/tips?status=new', { key: KEYS.analyst });
+      const tip = queue.json.find((t: any) => t.evidenceUrl === body.evidenceUrl);
+      assert.ok(tip, 'the tip is in the analyst queue');
+      assert.ok(!('memberId' in tip) && !('member' in tip), 'the sender is hidden from analysts');
+    } finally {
+      delete process.env.TOKEN_GATE_MOCK_BALANCE;
+    }
+  });
+
+  test('the watchlist is capped at 50 accounts', async () => {
+    const capped = await session('capped', 500);
+    await prisma.influencer.createMany({ data: Array.from({ length: 51 }, (_, i) => ({ handle: `cap_acct_${i}`, displayName: `Cap ${i}` })) });
+    for (let i = 0; i < 50; i++) assert.ok(ok((await call(`/cap_acct_${i}`, capped, 'PUT')).status));
+    const over = await call('/cap_acct_50', capped, 'PUT');
+    assert.equal(over.status, 400);
+    assert.match(over.text, /up to 50/);
+  });
+});
+
+describe('takedown request form', () => {
+  const ok = (s: number) => s === 200 || s === 201;
+  const post = (body: unknown) => api('/takedown-requests', { method: 'POST', body });
+  const reason = 'takedown-secret-reason: this person does not act as an influencer';
+
+  test('a request needs a valid handle and a reason (400), and nothing is stored for invalid input', async () => {
+    const before = await prisma.takedownRequest.count();
+    assert.equal((await post({ handle: 'not a handle!', reason })).status, 400);
+    assert.equal((await post({ handle: 'lunar_alpha', reason: 'short' })).status, 400);
+    assert.equal(await prisma.takedownRequest.count(), before);
+  });
+
+  test('the answer is identical for a covered and an unknown account, and a duplicate stores one row', async () => {
+    const covered = await post({ handle: '@Lunar_Alpha', reason, contact: 'takedown-secret-contact@example.test' });
+    const unknown = await post({ handle: 'nobody_here', reason });
+    assert.equal(covered.status, 201);
+    assert.equal(unknown.status, 201);
+    assert.deepEqual(covered.json, unknown.json, 'the form must not reveal who is rated');
+
+    const again = await post({ handle: 'lunar_alpha', reason: `${reason} (second request)` });
+    assert.equal(again.status, 201);
+    assert.equal(await prisma.takedownRequest.count({ where: { handle: 'lunar_alpha', status: 'new' } }), 1);
+  });
+
+  test('the form is rate limited after 5 requests per hour', async () => {
+    assert.equal((await post({ handle: 'another_one', reason })).status, 429);
+  });
+
+  test('staff see the requests with the matching account; anonymous callers and non-staff cannot', async () => {
+    assert.equal((await api('/admin/takedown-requests')).status, 401);
+    const list = await api('/admin/takedown-requests?status=new', { key: KEYS.analyst });
+    assert.equal(list.status, 200);
+    const covered = list.json.find((r: any) => r.handle === 'lunar_alpha');
+    assert.equal(covered.account.handle, 'lunar_alpha');
+    assert.equal(list.json.find((r: any) => r.handle === 'nobody_here').account, null);
+  });
+
+  test('a review records the decision once and does not remove the account by itself', async () => {
+    const row = await prisma.takedownRequest.findFirstOrThrow({ where: { handle: 'lunar_alpha' } });
+    const r = await api(`/admin/takedown-requests/${row.id}/review`, { method: 'POST', key: KEYS.analyst, body: { status: 'rejected', note: 'Meets the coverage rules' } });
+    assert.ok(ok(r.status), r.text);
+    assert.equal(r.json.status, 'rejected');
+    assert.equal((await api(`/admin/takedown-requests/${row.id}/review`, { method: 'POST', key: KEYS.analyst, body: { status: 'accepted' } })).status, 400);
+    assert.equal((await api('/ratings/lunar_alpha')).status, 200, 'the account is still public until an admin removes it');
+  });
+});
+
 describe('free-plan guardrails (Supabase and Railway)', () => {
   const raw = (path: string, headers: Record<string, string> = {}) => fetch(`${origin}/api/v1${path}`, { headers });
 
@@ -504,7 +666,7 @@ describe('public API', () => {
     const forbidden = [
       member.walletAddress, 'tip-secret', 'pending-secret', 'rejected-secret',
       ...staff.flatMap((s) => [s.email, s.name, s.id, ...(s.walletAddress ? [s.walletAddress] : [])]),
-      '999000111', 'noticeProofUrl', 'AppealVote',
+      '999000111', 'noticeProofUrl', 'AppealVote', 'takedown-secret-reason', 'takedown-secret-contact',
       'staffId', '"votes"', 'apiKeyHash', 'passwordHash', 'storagePath', 'capturedById', 'removed_guy',
     ];
     const paths = ['/ratings', '/ratings/lunar_alpha', '/ratings/lunar_alpha/history', '/ratings/lunar_alpha/calls', '/actions', '/under-review', '/stats', '/scale', '/methodology', '/research', '/research/lunar-alpha-new-rating', '/badge/lunar_alpha.svg'];
@@ -513,6 +675,22 @@ describe('public API', () => {
       assert.ok(r.status === 200, `${p} → ${r.status}`);
       for (const f of forbidden) assert.ok(!r.text.includes(f), `${p} leaks ${f}`);
     }
+  });
+
+  test('the share card data of a published action is public and minimal; drafts are not found; bad ids are refused', async () => {
+    const seeded = await prisma.ratingAction.findFirstOrThrow({ where: { influencer: { handle: 'lunar_alpha' }, status: 'published' } });
+    const id = `RA-${String(seeded.actionNumber).padStart(4, '0')}`;
+    const card = await api(`/actions/${id}`);
+    assert.equal(card.status, 200);
+    assert.equal(card.json.handle, 'lunar_alpha');
+    assert.equal(card.json.rating, 'BBB');
+    assert.equal(card.json.band, 'trusted');
+    assert.deepEqual(Object.keys(card.json).sort(), ['actionId', 'band', 'displayName', 'handle', 'outlook', 'previousRating', 'publishedAt', 'rating', 'type']);
+
+    const draft = await prisma.ratingAction.findFirstOrThrow({ where: { status: 'draft' } });
+    assert.equal((await api(`/actions/RA-${String(draft.actionNumber).padStart(4, '0')}`)).status, 404, 'a draft has no public card');
+    assert.equal((await api('/actions/RA-9999999')).status, 404);
+    assert.equal((await api('/actions/not-an-id')).status, 400);
   });
 
   test('a tip never changes a rating and analysts cannot see who sent it', async () => {

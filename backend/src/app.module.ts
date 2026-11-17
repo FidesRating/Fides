@@ -12,6 +12,8 @@ import { ClaimsModule } from './claims/claims';
 import { ResearchModule } from './research/research';
 import { SurveillanceModule } from './queue/surveillance';
 import { HealthController } from './health.controller';
+import { WatchlistModule } from './desk/watchlist';
+import { TakedownModule } from './takedown/takedown';
 
 const redisUrl = new URL(process.env.REDIS_URL || 'redis://localhost:6379');
 
@@ -37,6 +39,8 @@ const redisUrl = new URL(process.env.REDIS_URL || 'redis://localhost:6379');
     ClaimsModule,
     ResearchModule,
     SurveillanceModule,
+    WatchlistModule,
+    TakedownModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

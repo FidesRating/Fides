@@ -196,6 +196,26 @@ export class PublicService {
     }));
   }
 
+  /** Data for the share card of one published rating action: handle, old and new rating, outlook, type, date. */
+  async actionCard(actionId: string) {
+    const m = /^RA-(\d{1,8})$/i.exec(actionId);
+    if (!m) throw new BadRequestException('actionId must look like RA-0001');
+    const a = await this.prisma.ratingAction.findFirst({
+      where: { actionNumber: Number(m[1]), status: { in: ['published', 'superseded'] } },
+      select: {
+        actionNumber: true, type: true, rating: true, outlook: true, publishedAt: true,
+        previous: { select: { rating: true } },
+        influencer: { select: { handle: true, displayName: true, status: true } },
+      },
+    });
+    if (!a) throw new NotFoundException('Rating action not found');
+    if (a.influencer.status === 'removed') throw new GoneException('This account is no longer covered by FIDES');
+    return {
+      actionId: formatActionId(a.actionNumber), type: a.type, handle: a.influencer.handle, displayName: a.influencer.displayName,
+      rating: a.rating, band: a.rating ? band(a.rating) : null, previousRating: a.previous?.rating ?? null, outlook: a.outlook, publishedAt: a.publishedAt,
+    };
+  }
+
   /** Accounts being processed. Rating and score are not shown yet. */
   async underReview() {
     const rows = await this.prisma.ratingAction.findMany({
@@ -295,6 +315,11 @@ export class PublicController {
   @Get('actions')
   actions(@Query() q: ActionsFeedDto) {
     return this.pub.actions(q);
+  }
+
+  @Get('actions/:actionId')
+  actionCard(@Param('actionId') actionId: string) {
+    return this.pub.actionCard(actionId);
   }
 
   @Get('under-review')

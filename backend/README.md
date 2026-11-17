@@ -115,7 +115,11 @@ rug within 12 months → at most CCC+ · no verified wallet → at most A. The c
 | POST | /auth/nonce · /auth/verify · /auth/logout · GET /me · /me/api-keys | EVM wallet session (`personal_sign`) |
 | POST/GET | /claim/x/start · /claim/x/complete · /claim/me · /claim/wallets/* · /claim/replies · /claim/appeals | session |
 | POST/GET | /tips · /me/tips | holder |
+| GET | /actions/:actionId | public (share card data of one published rating action) |
+| POST | /takedown-requests | public, 5 per hour per IP; the answer never reveals who is rated |
+| GET/PUT/DELETE | /me/watchlist · /me/watchlist/feed · /me/watchlist/:handle | holder (in-app list of published actions; nothing is sent out) |
 | GET | /health | public, not cached, no database query |
+| GET/POST | /admin/takedown-requests · /admin/takedown-requests/:id/review | analyst (a review records the decision; removing an account stays an admin action) |
 | * | /admin/** | analyst (takedown: admin), wallet on the `STAFF_WALLETS` allowlist |
 | * | /committee/** | committee, wallet on the `STAFF_WALLETS` allowlist |
 | POST/PATCH | /research | analyst / committee |

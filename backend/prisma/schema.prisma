@@ -115,6 +115,12 @@ enum TipStatus {
   duplicate
 }
 
+enum TakedownStatus {
+  new
+  accepted
+  rejected
+}
+
 enum ArticleKind {
   downgrade_note
   study
@@ -186,6 +192,7 @@ model Influencer {
   conflicts  ConflictDeclaration[]
   tips       Tip[]
   articles   Article[]             @relation("ArticleInfluencers")
+  watchedBy  WatchlistItem[]
 }
 
 /// A public account of an influencer on one platform. Followers and profile claim live here.
@@ -482,6 +489,33 @@ model Member {
   sessions      MemberSession[]
   apiKeys       ApiKey[]
   tips          Tip[]
+  watchlist     WatchlistItem[]
+}
+
+/// Public request to remove an account that does not meet the coverage rules. Reviewed by staff; the removal itself is an admin action.
+model TakedownRequest {
+  id           String         @id @default(uuid())
+  handle       String // lowercase, without @; may not match a covered account
+  reason       String
+  contact      String? // optional way to reply; never shown publicly
+  status       TakedownStatus @default(new)
+  decisionNote String?
+  createdAt    DateTime       @default(now())
+  decidedAt    DateTime?
+
+  @@index([status, createdAt])
+}
+
+/// A holder's saved account. Only used to show that account's published rating actions on the Desk. No outbound alerts.
+model WatchlistItem {
+  id           String     @id @default(uuid())
+  memberId     String
+  member       Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  influencerId String
+  influencer   Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([memberId, influencerId])
 }
 
 model AuthNonce {
