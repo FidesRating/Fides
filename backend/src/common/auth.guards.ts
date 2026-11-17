@@ -52,7 +52,9 @@ export class StaffGuard implements CanActivate {
     }
 
     const roles = this.reflector.getAllAndOverride<StaffRole[]>(STAFF_ROLES_KEY, [ctx.getHandler(), ctx.getClass()]);
-    if (roles?.length && !roles.includes(staff.role) && staff.role !== 'admin') {
+    // An admin may do analyst work, but never committee-only work: the committee alone decides ratings.
+    const adminMayPass = !!roles?.includes('analyst');
+    if (roles?.length && !roles.includes(staff.role) && !(staff.role === 'admin' && adminMayPass)) {
       throw new ForbiddenException(`Requires role: ${roles.join(' or ')}`);
     }
     req.staff = staff;

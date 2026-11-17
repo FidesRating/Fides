@@ -1,60 +1,54 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiCall, errorText, readToken, signInWithWallet, signOutSession, writeToken } from '@/lib/session';
+import { DraftsPanel, InfluencersPanel, TakedownPanel, TipsPanel } from './AnalystPanels';
+import { CommitteePanel } from './CommitteePanel';
+import { Ctx, panel } from './shared';
 
 type Role = 'analyst' | 'committee' | 'admin';
 interface StaffMe { role: Role; walletAddress: string }
-interface InfluencerRow {
-  id: string; handle: string; displayName: string | null; status: string;
-  accounts: { id: string; handle: string; followers: number | null }[];
-  _count: { calls: number; wallets: number; promotions: number };
-}
-interface QueueRow {
-  id: string; actionId: string; status: string;
-  influencer: { handle: string; displayName: string | null };
-  scorecard: { totalScore: number | null; scorecardRating: string | null };
-  votesCast: number; conflicted: boolean; publishAfter: string | null;
-}
+type Tab = 'influencers' | 'drafts' | 'tips' | 'takedowns' | 'committee';
 
-// Read-only first version: it shows who is signed in and what that role can see. Write actions come later.
+const TABS: { id: Tab; label: string; roles: Role[] }[] = [
+  { id: 'influencers', label: 'Influencers', roles: ['analyst', 'admin'] },
+  { id: 'drafts', label: 'Rating drafts', roles: ['analyst', 'admin'] },
+  { id: 'tips', label: 'Desk tips', roles: ['analyst', 'admin'] },
+  { id: 'takedowns', label: 'Takedowns', roles: ['analyst', 'admin'] },
+  { id: 'committee', label: 'Committee', roles: ['committee'] },
+];
+
+// The role comes from the server allowlist. The page only decides what to show: the server checks every call.
 export default function StaffConsole() {
   const [token, setToken] = useState<string | null>(null);
   const [me, setMe] = useState<StaffMe | null>(null);
-  const [influencers, setInfluencers] = useState<InfluencerRow[]>([]);
-  const [queue, setQueue] = useState<QueueRow[]>([]);
+  const [tab, setTab] = useState<Tab>('influencers');
+  const [influencerCount, setInfluencerCount] = useState<number | null>(null);
+  const [queueCount, setQueueCount] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async (tok: string) => {
+  const loadMe = useCallback(async (tok: string) => {
     const m = await apiCall('/staff/me', tok);
     if (m.status === 401) { writeToken(null); setToken(null); setMe(null); return; }
     if (!m.ok) { setMe(null); setMessage(errorText(m)); return; }
     setMessage('');
     setMe(m.json);
-    const role: Role = m.json.role;
-    if (role === 'analyst' || role === 'admin') {
-      const r = await apiCall('/admin/influencers', tok);
-      if (r.ok) setInfluencers(r.json);
-    }
-    if (role === 'committee' || role === 'admin') {
-      const r = await apiCall('/committee/queue', tok);
-      if (r.ok) setQueue(r.json);
-    }
+    setTab(m.json.role === 'committee' ? 'committee' : 'influencers');
   }, []);
 
   useEffect(() => {
     const tok = readToken();
     setToken(tok);
-    if (tok) load(tok);
-  }, [load]);
+    if (tok) loadMe(tok);
+  }, [loadMe]);
 
   async function signIn() {
     setBusy(true);
     setMessage('');
     const r = await signInWithWallet();
     if ('error' in r) setMessage(r.error);
-    else { setToken(r.token); await load(r.token); }
+    else { setToken(r.token); await loadMe(r.token); }
     setBusy(false);
   }
 
@@ -62,36 +56,32 @@ export default function StaffConsole() {
     const tok = token;
     setToken(null);
     setMe(null);
-    setInfluencers([]);
-    setQueue([]);
     setMessage('');
+    setInfluencerCount(null);
+    setQueueCount(null);
     await signOutSession(tok);
   }
 
-  async function addInfluencer(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!token) return;
-    const form = e.currentTarget;
-    const data = new FormData(form);
-    setBusy(true);
-    const r = await apiCall('/admin/influencers', token, {
-      handle: String(data.get('handle') ?? '').trim(),
-      displayName: String(data.get('displayName') ?? '').trim(),
-      followers: Number(data.get('followers')),
-    });
-    setBusy(false);
-    if (r.ok) { form.reset(); setMessage(`Added @${r.json.handle}.`); await load(token); }
-    else setMessage(errorText(r));
-  }
+  /** One API caller for every panel: it shows failures, and the success text when a write passes one. */
+  const call = useCallback<Ctx['call']>(async (path, body, method, done) => {
+    if (!token) return { ok: false, status: 0, json: null };
+    const write = body !== undefined || (method !== undefined && method !== 'GET');
+    if (write) setBusy(true);
+    const r = await apiCall(path, token, body, method);
+    if (write) setBusy(false);
+    if (r.status === 401) { writeToken(null); setToken(null); setMe(null); setMessage('Your session ended. Sign in again.'); }
+    else if (!r.ok) setMessage(errorText(r));
+    else if (done) setMessage(done);
+    return r;
+  }, [token]);
 
-  const showAnalyst = me?.role === 'analyst' || me?.role === 'admin';
-  const showCommittee = me?.role === 'committee' || me?.role === 'admin';
-
-  const panel: React.CSSProperties = { padding: 22, display: 'grid', gap: 16 };
+  const ctx = useMemo<Ctx>(() => ({ call, busy }), [call, busy]);
+  const tabs = me ? TABS.filter((t) => t.roles.includes(me.role)) : [];
+  const isAnalyst = me?.role === 'analyst' || me?.role === 'admin';
 
   return (
     <section style={{ display: 'grid', gap: 20 }}>
-      {message && <p className="box" role="status" style={{ padding: '14px 18px' }}>{message}</p>}
+      {message && <p className="box" role="status" style={{ padding: '14px 18px', position: 'sticky', top: 96, zIndex: 5 }}>{message}</p>}
 
       {!token && (
         <div className="box" style={{ ...panel, maxWidth: 560 }}>
@@ -121,73 +111,24 @@ export default function StaffConsole() {
             <div className="btns"><button className="btn" onClick={signOut}>Sign out</button></div>
           </div>
 
-          <div className="stats" style={{ gridTemplateColumns: `repeat(${showAnalyst && showCommittee ? 3 : 2}, 1fr)`, marginTop: 0 }}>
+          <div className="stats" style={{ gridTemplateColumns: `repeat(2, 1fr)`, marginTop: 0 }}>
             <div className="stat"><b style={{ textTransform: 'capitalize' }}>{me.role}</b><span>Your role</span></div>
-            {showAnalyst && <div className="stat"><b>{influencers.length}</b><span>Influencers tracked</span></div>}
-            {showCommittee && <div className="stat"><b>{queue.length}</b><span>Waiting for committee</span></div>}
+            {isAnalyst
+              ? <div className="stat"><b>{influencerCount ?? '-'}</b><span>Influencers tracked</span></div>
+              : <div className="stat"><b>{queueCount ?? '-'}</b><span>Waiting for committee</span></div>}
           </div>
 
-          {showAnalyst && (
-            <div className="box" style={panel}>
-              <div>
-                <h3>Add influencer</h3>
-                <p>Public X account only. The server rejects accounts below the follower minimum and handles already tracked.</p>
-              </div>
-              <form className="form" onSubmit={addInfluencer}>
-                <label>X handle<input name="handle" placeholder="example_user" required maxLength={16} pattern="@?[A-Za-z0-9_]{1,15}" /></label>
-                <label>Display name<input name="displayName" placeholder="Shown on the rating page" required maxLength={60} /></label>
-                <label>Followers<input name="followers" type="number" min={0} step={1} placeholder="25000" required /></label>
-                <div className="full"><button className="btn primary" type="submit" disabled={busy}>Add influencer</button></div>
-              </form>
+          {me.role === 'admin' && <p className="box" style={{ padding: '14px 18px' }}>Admins do analyst work and remove accounts. Only committee wallets vote, finalize and publish ratings.</p>}
 
-              <h3>Influencers ({influencers.length})</h3>
-              {influencers.length === 0 ? <p>None yet. Add the first account above.</p> : (
-                <div className="tbl-wrap">
-                  <table className="tbl">
-                    <thead><tr><th>Account</th><th>Name</th><th>Status</th><th>Followers</th><th>Calls</th><th>Wallets</th><th>Promotions</th></tr></thead>
-                    <tbody>
-                      {influencers.map((i) => (
-                        <tr key={i.id}>
-                          <td>@{i.handle}</td>
-                          <td>{i.displayName ?? '-'}</td>
-                          <td>{i.status}</td>
-                          <td>{(i.accounts[0]?.followers ?? 0).toLocaleString('en-US')}</td>
-                          <td>{i._count.calls}</td>
-                          <td>{i._count.wallets}</td>
-                          <td>{i._count.promotions}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="btns">
+            {tabs.map((t) => <button key={t.id} className={`btn${tab === t.id ? ' primary' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>)}
+          </div>
 
-          {showCommittee && (
-            <div className="box" style={panel}>
-              <h3>Committee queue ({queue.length})</h3>
-              {queue.length === 0 ? <p>Nothing is waiting for a vote.</p> : (
-                <div className="tbl-wrap">
-                  <table className="tbl">
-                    <thead><tr><th>Action</th><th>Account</th><th>Status</th><th>Scorecard</th><th>Votes</th><th>Note</th></tr></thead>
-                    <tbody>
-                      {queue.map((a) => (
-                        <tr key={a.id}>
-                          <td>{a.actionId}</td>
-                          <td>@{a.influencer.handle}</td>
-                          <td>{a.status}</td>
-                          <td>{a.scorecard.scorecardRating ?? 'n/a'} ({a.scorecard.totalScore ?? 'n/a'})</td>
-                          <td>{a.votesCast}</td>
-                          <td>{a.conflicted ? 'You are conflicted' : '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
+          {tab === 'influencers' && isAnalyst && <InfluencersPanel ctx={ctx} isAdmin={me.role === 'admin'} onCount={setInfluencerCount} />}
+          {tab === 'drafts' && isAnalyst && <DraftsPanel ctx={ctx} />}
+          {tab === 'tips' && isAnalyst && <TipsPanel ctx={ctx} />}
+          {tab === 'takedowns' && isAnalyst && <TakedownPanel ctx={ctx} isAdmin={me.role === 'admin'} />}
+          {tab === 'committee' && me.role === 'committee' && <CommitteePanel ctx={ctx} onCount={setQueueCount} />}
         </>
       )}
     </section>

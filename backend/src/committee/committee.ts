@@ -80,6 +80,7 @@ export class CommitteeService {
       myVote: a.votes.find((v) => v.staffId === staff.id) ?? null,
       conflicted: conflicts.has(a.influencer.id),
       publishAfter: a.publishAfter,
+      noticeChannel: a.noticeChannel, hasNoticeProof: !!a.noticeProofUrl, rationale: a.rationale, rating: a.rating,
     }));
   }
 
@@ -193,6 +194,15 @@ export class CommitteeService {
     });
   }
 
+  /** Latest published ratings, so the committee can set or clear a Rating Watch. */
+  async published() {
+    const rows = await this.prisma.ratingAction.findMany({
+      where: { status: 'published' }, orderBy: { publishedAt: 'desc' }, take: 50,
+      select: { id: true, actionNumber: true, rating: true, outlook: true, watch: true, watchReason: true, influencer: { select: { handle: true } } },
+    });
+    return rows.map((a) => ({ ...a, actionId: formatActionId(a.actionNumber) }));
+  }
+
   appeals(status?: string) {
     return this.prisma.appeal.findMany({
       where: status ? { status: status as any } : {},
@@ -276,6 +286,11 @@ export class CommitteeController {
   @Patch('actions/:id/watch')
   watch(@Param('id') id: string, @Body() dto: WatchDto) {
     return this.committee.setWatch(id, dto);
+  }
+
+  @Get('published')
+  published() {
+    return this.committee.published();
   }
 
   @Get('appeals')

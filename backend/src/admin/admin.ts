@@ -450,6 +450,45 @@ export class AdminService {
     return this.prisma.ratingAction.update({ where: { id: actionId }, data: { status: 'committee' } });
   }
 
+  /** Everything an analyst needs to work one account: accounts, wallets, promotions and calls. */
+  async influencerDetail(id: string) {
+    const inf = await this.prisma.influencer.findUnique({
+      where: { id },
+      select: {
+        id: true, handle: true, displayName: true, status: true, participating: true,
+        accounts: { select: { id: true, platform: true, handle: true, followers: true, claimedAt: true, claimMemberId: true } },
+        wallets: { select: { id: true, chainKey: true, address: true, method: true, sourceUrl: true } },
+        promotions: {
+          orderBy: { createdAt: 'desc' }, take: 100,
+          select: { id: true, callId: true, source: true, evidenceUrl: true, disclosed: true, amountUsd: true, status: true, note: true },
+        },
+        calls: {
+          orderBy: { postedAt: 'desc' }, take: 100,
+          select: {
+            id: true, postUrl: true, postedAt: true, tokenSymbol: true, chainKey: true, direction: true, priceAtCall: true,
+            price7d: true, price30d: true, price90d: true, sponsoredDisclosed: true, deletedAt: true, retractedAt: true,
+            projectRugConfirmedAt: true, walletChecks: { select: { walletId: true, heldAtCall: true, soldPct7d: true } },
+          },
+        },
+      },
+    });
+    if (!inf) throw new NotFoundException('Influencer not found');
+    const { accounts, ...rest } = inf;
+    return { ...rest, accounts: accounts.map(({ claimMemberId, ...a }) => ({ ...a, claimPending: !!claimMemberId && !a.claimedAt })) };
+  }
+
+  /** Recent rating actions of any status, so an analyst can find a draft again. */
+  async listActions() {
+    const rows = await this.prisma.ratingAction.findMany({
+      orderBy: { createdAt: 'desc' }, take: 50,
+      select: {
+        id: true, actionNumber: true, status: true, totalScore: true, scorecardRating: true, rating: true, appliedCaps: true,
+        isDefault: true, notRated: true, createdAt: true, influencer: { select: { handle: true } },
+      },
+    });
+    return rows.map((a) => ({ ...a, actionId: formatActionId(a.actionNumber) }));
+  }
+
   listInfluencers(status?: string) {
     return this.prisma.influencer.findMany({
       where: status ? { status: status as any } : {},
@@ -471,6 +510,16 @@ export class AdminController {
   @Get('influencers')
   list(@Query('status') status?: string) {
     return this.admin.listInfluencers(status);
+  }
+
+  @Get('influencers/:id')
+  detail(@Param('id') id: string) {
+    return this.admin.influencerDetail(id);
+  }
+
+  @Get('actions')
+  actions() {
+    return this.admin.listActions();
   }
 
   @Post('influencers')
