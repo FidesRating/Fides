@@ -1,7 +1,7 @@
 /**
  * Seed FIDES.
  *  1. Methodology v1.0 (always)
- *  2. Staff accounts: analyst, 4 committee members, admin (keys from env SEED_*_KEY, or random and printed once)
+ *  2. Placeholder staff rows (no login): analyst, 4 committee members, admin. Real staff sign in by wallet (STAFF_WALLETS).
  *  3. FICTIONAL demo data @lunar_alpha (BBB, Outlook Negative) only when SEED_DEMO=true and NODE_ENV is not production.
  *
  * Run: npx prisma db seed
@@ -12,17 +12,17 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { METHODOLOGY_VERSION, PILLARS, RULES, SCALE, assertMethodology } from '../src/rating/methodology';
 import { committeeOutlook, committeeRating, computeScorecard } from '../src/rating/rating.engine';
 import { lunarAlphaFixture } from '../src/rating/demo-fixture';
-import { randomToken, sha256 } from '../src/common/crypto';
+import { sha256 } from '../src/common/crypto';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 
 const STAFF = [
-  { email: 'analyst@fides.local', name: 'Lead Analyst', role: 'analyst', env: 'SEED_ANALYST_KEY' },
-  { email: 'committee-a@fides.local', name: 'Committee A', role: 'committee', env: 'SEED_COMMITTEE_A_KEY' },
-  { email: 'committee-b@fides.local', name: 'Committee B', role: 'committee', env: 'SEED_COMMITTEE_B_KEY' },
-  { email: 'committee-c@fides.local', name: 'Committee C', role: 'committee', env: 'SEED_COMMITTEE_C_KEY' },
-  { email: 'committee-d@fides.local', name: 'Committee D', role: 'committee', env: 'SEED_COMMITTEE_D_KEY' },
-  { email: 'admin@fides.local', name: 'Admin', role: 'admin', env: 'SEED_ADMIN_KEY' },
+  { email: 'analyst@fides.local', name: 'Lead Analyst', role: 'analyst' },
+  { email: 'committee-a@fides.local', name: 'Committee A', role: 'committee' },
+  { email: 'committee-b@fides.local', name: 'Committee B', role: 'committee' },
+  { email: 'committee-c@fides.local', name: 'Committee C', role: 'committee' },
+  { email: 'committee-d@fides.local', name: 'Committee D', role: 'committee' },
+  { email: 'admin@fides.local', name: 'Admin', role: 'admin' },
 ] as const;
 
 async function seedMethodology() {
@@ -41,21 +41,14 @@ async function seedMethodology() {
 
 async function seedStaff() {
   const ids: Record<string, string> = {};
+  // Placeholder staff rows (no login) so the demo votes have authors. Real staff sign in by wallet (STAFF_WALLETS).
   for (const s of STAFF) {
-    const existing = await prisma.user.findUnique({ where: { email: s.email } });
-    const provided = process.env[s.env];
-    if (existing && !provided) {
-      ids[s.email] = existing.id;
-      continue;
-    }
-    const key = provided || randomToken('fdstaff');
     const u = await prisma.user.upsert({
       where: { email: s.email },
-      create: { email: s.email, name: s.name, role: s.role, passwordHash: '!', apiKeyHash: sha256(key) },
-      update: { apiKeyHash: sha256(key), role: s.role },
+      create: { email: s.email, name: s.name, role: s.role, passwordHash: '!' },
+      update: {},
     });
     ids[s.email] = u.id;
-    if (!provided) console.log(`✔ ${s.name} staff key (save it now, shown once): ${key}`);
   }
   console.log('✔ Staff accounts');
   return ids;

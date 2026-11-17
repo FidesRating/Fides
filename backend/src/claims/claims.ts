@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Injectable, Logger, Module, NotFoundException, Post, UseGuards,
+  BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Inject, Injectable, Module, NotFoundException, Post, UnauthorizedException, UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { IsIn, IsOptional, IsString, IsUrl, Matches, MaxLength, MinLength } from 'class-validator';
@@ -13,9 +13,11 @@ import { RULES } from '../rating/methodology';
 import { formatActionId } from '../public/presenter';
 import { MembersModule } from '../members/members.module';
 import { MembersService } from '../members/members.service';
+import { HttpXOAuth, makePkce, X_OAUTH, XOAuthAdapter } from './x-oauth';
 
-export class ClaimStartDto {
-  @Matches(/^@?[A-Za-z0-9_]{1,15}$/) handle: string;
+export class XCallbackDto {
+  @IsString() @MaxLength(512) code: string;
+  @IsString() @MaxLength(64) state: string;
 }
 
 export class WalletNonceDto {
@@ -55,9 +57,11 @@ const actionNumber = (id: string) => {
 
 @Injectable()
 export class ClaimsService {
-  private readonly logger = new Logger(ClaimsService.name);
-
-  constructor(private readonly prisma: PrismaService, private readonly members: MembersService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly members: MembersService,
+    @Inject(X_OAUTH) private readonly x: XOAuthAdapter,
+  ) {}
 
   private async myInfluencer(member: Member) {
     const account = await this.prisma.socialAccount.findUnique({ where: { claimedById: member.id }, include: { influencer: true } });
@@ -67,47 +71,39 @@ export class ClaimsService {
 
   // ─────────────────────────── Claim ───────────────────────────
 
-  async start(member: Member, handleRaw: string) {
-    const handle = handleRaw.replace(/^@/, '').toLowerCase();
+  /** Step 1: the member is sent to X to log in. The PKCE verifier is kept here, keyed by a one-time state. */
+  async start(member: Member) {
+    const mine = await this.prisma.socialAccount.findUnique({ where: { claimedById: member.id } });
+    if (mine) throw new ConflictException(`This wallet already manages @${mine.handle}`);
+    const { verifier, challenge } = makePkce();
+    const state = randomBytes(16).toString('hex');
+    const url = this.x.authorizeUrl(state, challenge); // fails closed when X credentials are not configured
+    await this.prisma.authNonce.create({
+      data: { walletAddress: member.walletAddress, nonce: state, purpose: 'x_claim', subjectId: member.id, message: verifier, expiresAt: new Date(Date.now() + NONCE_TTL_MS) },
+    });
+    return { authorizeUrl: url };
+  }
+
+  /** Step 2: X sends the member back with a code. The verified X username decides which account is claimed. */
+  async complete(member: Member, dto: XCallbackDto) {
+    const row = await this.prisma.authNonce.findUnique({ where: { nonce: dto.state } });
+    if (!row || row.purpose !== 'x_claim' || row.subjectId !== member.id) throw new UnauthorizedException('Unknown login request');
+    if (row.usedAt || row.expiresAt < new Date()) throw new UnauthorizedException('This login request expired or was already used');
+    const used = await this.prisma.authNonce.updateMany({ where: { id: row.id, usedAt: null }, data: { usedAt: new Date() } });
+    if (used.count !== 1) throw new UnauthorizedException('This login request was already used');
+
+    const handle = await this.x.verifiedUsername(dto.code, row.message);
     const account = await this.prisma.socialAccount.findUnique({ where: { platform_handle: { platform: 'x', handle } }, include: { influencer: true } });
     if (!account || account.influencer.status === 'removed') throw new NotFoundException(`@${handle} is not covered by FIDES`);
     if (account.claimedById) throw new ConflictException(`@${handle} is already claimed`);
     const mine = await this.prisma.socialAccount.findUnique({ where: { claimedById: member.id } });
     if (mine) throw new ConflictException(`This wallet already manages @${mine.handle}`);
-    const code = `FIDES-${randomBytes(3).toString('hex').toUpperCase()}`;
-    await this.prisma.socialAccount.update({ where: { id: account.id }, data: { claimCode: code, claimMemberId: member.id, claimCodeAt: new Date() } });
-    return { handle, code, instructions: `Add ${code} to your X bio (or post it publicly from @${handle}), then press Verify.` };
-  }
 
-  /** Checks the code in the X bio when the X API is available; otherwise an analyst verifies manually. */
-  async verify(member: Member) {
-    const inf = await this.prisma.socialAccount.findFirst({ where: { claimMemberId: member.id } });
-    if (!inf || !inf.claimCode) throw new BadRequestException('Start a claim first');
-    const token = process.env.X_BEARER_TOKEN;
-    if (!token) return { status: 'pending_manual', message: 'An analyst will check your X profile for the code within two business days.' };
-
-    try {
-      const base = process.env.X_API_URL || 'https://api.x.com';
-      const res = await fetch(`${base}/2/users/by/username/${encodeURIComponent(inf.handle)}?user.fields=description`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = res.ok ? await res.json() : null;
-      const bio: string = data?.data?.description ?? '';
-      if (!bio.includes(inf.claimCode)) {
-        return { status: 'not_found', message: `${inf.claimCode} was not found in the bio of @${inf.handle}. Add it and try again.` };
-      }
-    } catch (e) {
-      this.logger.warn(`X lookup failed for @${inf.handle}: ${e.message}`);
-      return { status: 'pending_manual', message: 'We could not reach X. An analyst will check manually.' };
-    }
     await this.prisma.$transaction([
-      this.prisma.socialAccount.update({
-        where: { id: inf.id },
-        data: { claimedById: member.id, claimedAt: new Date(), claimCode: null, claimMemberId: null },
-      }),
-      this.prisma.influencer.update({ where: { id: inf.influencerId }, data: { participating: true } }),
+      this.prisma.socialAccount.update({ where: { id: account.id }, data: { claimedById: member.id, claimedAt: new Date() } }),
+      this.prisma.influencer.update({ where: { id: account.influencerId }, data: { participating: true } }),
     ]);
-    return { status: 'claimed', handle: inf.handle, message: 'Profile claimed. Your rating is now marked Participating.' };
+    return { status: 'claimed', handle, message: 'Profile claimed. Your rating is now marked Participating.' };
   }
 
   /** Dashboard for a claimed account: actions in the notice period, the published rating, wallets. */
@@ -223,17 +219,18 @@ export class ClaimsService {
 export class ClaimsController {
   constructor(private readonly claims: ClaimsService) {}
 
-  @Post('claim/start')
+  @Post('claim/x/start')
   @UseGuards(SessionGuard)
-  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
-  start(@CurrentMember() mc: MemberContext, @Body() dto: ClaimStartDto) {
-    return this.claims.start(mc.member, dto.handle);
+  @Throttle({ default: { limit: 10, ttl: 3600_000 } })
+  start(@CurrentMember() mc: MemberContext) {
+    return this.claims.start(mc.member);
   }
 
-  @Post('claim/verify')
+  @Post('claim/x/complete')
   @UseGuards(SessionGuard)
-  verify(@CurrentMember() mc: MemberContext) {
-    return this.claims.verify(mc.member);
+  @Throttle({ default: { limit: 10, ttl: 3600_000 } })
+  complete(@CurrentMember() mc: MemberContext, @Body() dto: XCallbackDto) {
+    return this.claims.complete(mc.member, dto);
   }
 
   @Get('claim/me')
@@ -280,5 +277,9 @@ export class ClaimsController {
   }
 }
 
-@Module({ imports: [MembersModule], controllers: [ClaimsController], providers: [ClaimsService] })
+@Module({
+  imports: [MembersModule],
+  controllers: [ClaimsController],
+  providers: [ClaimsService, { provide: X_OAUTH, useClass: HttpXOAuth }],
+})
 export class ClaimsModule {}

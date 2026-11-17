@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Body, Controller, ForbiddenException, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Put, Query, UseGuards, UseInterceptors,
+  BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Put, Query, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { IsBoolean, IsEnum, IsIn, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
 import { Outlook, User, Watch } from '@prisma/client';
@@ -9,6 +9,9 @@ import { CurrentStaff, StaffGuard, StaffRoles } from '../common/auth.guards';
 import { ALL_RATINGS, RULES } from '../rating/methodology';
 import { actionType, allowedVotes, committeeOutlook, committeeRating } from '../rating/rating.engine';
 import { formatActionId } from '../public/presenter';
+import { watchStart } from '../rating/watch';
+import { rejectQuorumReached } from './appeal-quorum';
+import { isXStatusUrl, publishBlocker } from './notice';
 
 export class VoteDto {
   @IsOptional() @IsBoolean() recuse?: boolean;
@@ -19,6 +22,10 @@ export class VoteDto {
 
 export class FinalizeDto {
   @IsOptional() @IsString() @MaxLength(2000) rationale?: string;
+}
+
+export class NoticeProofDto {
+  @IsString() @MaxLength(300) url: string;
 }
 
 export class WatchDto {
@@ -32,7 +39,7 @@ export class ConflictDto {
 }
 
 export class DecideAppealDto {
-  @IsIn(['upheld', 'reopened', 'rejected']) decision: 'upheld' | 'reopened' | 'rejected';
+  @IsIn(['reopen', 'reject']) decision: 'reopen' | 'reject';
   @IsString() @MaxLength(2000) note: string;
 }
 
@@ -133,19 +140,32 @@ export class CommitteeService {
       data: {
         rating, outlook, rationale: dto.rationale ?? null,
         type: actionType(a.previous?.rating ?? null, rating),
-        status: 'notice', finalizedAt: now, noticeSentAt: now,
-        noticeChannel: a.influencer.participating ? 'profile' : 'x_mention',
-        publishAfter: new Date(now.getTime() + noticeMs()),
+        status: 'notice', finalizedAt: now,
+        ...(a.influencer.participating
+          ? { noticeChannel: 'profile' as const, noticeSentAt: now, publishAfter: new Date(now.getTime() + noticeMs()) }
+          : { noticeChannel: 'x_mention' as const, noticeSentAt: null, publishAfter: null }), // clock starts at recordNoticeProof
       },
+    });
+  }
+
+  /** Unclaimed account: staff post the mention on X by hand and record it. This starts the notice clock, once. */
+  async recordNoticeProof(id: string, dto: NoticeProofDto) {
+    const a = await this.action(id);
+    if (a.status !== 'notice' || a.noticeChannel !== 'x_mention') throw new BadRequestException('Notice proof applies to an unclaimed account in the notice period');
+    if (a.noticeProofUrl) throw new ConflictException('Notice proof is already recorded');
+    if (!isXStatusUrl(dto.url)) throw new BadRequestException('Proof must be the URL of a public X post');
+    const now = new Date();
+    return this.prisma.ratingAction.update({
+      where: { id },
+      data: { noticeProofUrl: dto.url, noticeSentAt: now, publishAfter: new Date(now.getTime() + noticeMs()) },
+      select: { id: true, noticeSentAt: true, publishAfter: true },
     });
   }
 
   async publish(id: string) {
     const a = await this.action(id);
-    if (a.status !== 'notice') throw new BadRequestException(`Only actions in the notice period can be published (action is ${a.status})`);
-    if (!a.publishAfter || a.publishAfter > new Date()) {
-      throw new BadRequestException(`The rated account has until ${a.publishAfter?.toISOString()} to flag factual errors`);
-    }
+    const blocker = publishBlocker(a, new Date());
+    if (blocker) throw new BadRequestException(blocker);
     const now = new Date();
     await this.prisma.$transaction([
       this.prisma.ratingAction.updateMany({ where: { influencerId: a.influencerId, status: 'published' }, data: { status: 'superseded' } }),
@@ -163,9 +183,13 @@ export class CommitteeService {
     const a = await this.action(id);
     if (a.status !== 'published') throw new BadRequestException('Watch applies to the published rating');
     if (dto.watch && !dto.reason) throw new BadRequestException('A Rating Watch needs a public reason');
+    const setAt = dto.watch ? watchStart(a, new Date()) : null;
+    if (dto.watch && !setAt) {
+      throw new BadRequestException(`The ${RULES.watchMaxDays}-day Rating Watch on this rating has ended and cannot be set again. Resolve it with a new rating action.`);
+    }
     return this.prisma.ratingAction.update({
       where: { id },
-      data: { watch: dto.watch ?? null, watchReason: dto.watch ? dto.reason : null, watchSetAt: dto.watch ? new Date() : null },
+      data: { watch: dto.watch ?? null, watchReason: dto.watch ? dto.reason : null, watchSetAt: setAt },
     });
   }
 
@@ -177,18 +201,37 @@ export class CommitteeService {
     });
   }
 
-  async decideAppeal(id: string, dto: DecideAppealDto) {
+  /**
+   * One non-conflicted member can reopen: this only starts a new review, and the new rating still needs the full
+   * quorum. Rejecting the appeal keeps the published rating, so it needs the same quorum as a rating.
+   */
+  async decideAppeal(staff: User, id: string, dto: DecideAppealDto) {
     const ap = await this.prisma.appeal.findUnique({ where: { id }, include: { action: true } });
     if (!ap) throw new NotFoundException('Appeal not found');
     if (ap.status !== 'open') throw new BadRequestException('Appeal already decided');
-    const ops = [
-      this.prisma.appeal.update({ where: { id }, data: { status: dto.decision, decision: dto.note, decidedAt: new Date() } }),
-    ] as any[];
-    if (dto.decision === 'reopened') {
-      ops.push(this.prisma.influencer.update({ where: { id: ap.action.influencerId }, data: { reviewDue: true, reviewDueReason: 'Appeal reopened' } }));
+    const influencerId = ap.action.influencerId;
+    const conflicts = await this.prisma.conflictDeclaration.findMany({ where: { influencerId }, select: { staffId: true } });
+    const conflicted = new Set(conflicts.map((c) => c.staffId));
+    if (conflicted.has(staff.id)) throw new ForbiddenException('You declared a conflict for this account and are recused');
+
+    if (dto.decision === 'reopen') {
+      const [updated] = await this.prisma.$transaction([
+        this.prisma.appeal.update({ where: { id }, data: { status: 'reopened', decision: dto.note, decidedAt: new Date() } }),
+        this.prisma.influencer.update({ where: { id: influencerId }, data: { reviewDue: true, reviewDueReason: 'Appeal reopened' } }),
+      ]);
+      return updated;
     }
-    const [updated] = await this.prisma.$transaction(ops);
-    return updated;
+
+    await this.prisma.appealVote.upsert({
+      where: { appealId_staffId: { appealId: id, staffId: staff.id } },
+      create: { appealId: id, staffId: staff.id, note: dto.note },
+      update: { note: dto.note },
+    });
+    const voters = (await this.prisma.appealVote.findMany({ where: { appealId: id }, select: { staffId: true } })).map((v) => v.staffId);
+    if (!rejectQuorumReached(voters, conflicted, RULES.minCommitteeVotes)) {
+      return { id, status: 'open', rejectVotes: voters.filter((v) => !conflicted.has(v)).length, needed: RULES.minCommitteeVotes };
+    }
+    return this.prisma.appeal.update({ where: { id }, data: { status: 'rejected', decision: dto.note, decidedAt: new Date() } });
   }
 }
 
@@ -219,6 +262,12 @@ export class CommitteeController {
     return this.committee.finalize(id, dto);
   }
 
+  @Post('actions/:id/notice-proof')
+  @StaffRoles('analyst', 'committee')
+  noticeProof(@Param('id') id: string, @Body() dto: NoticeProofDto) {
+    return this.committee.recordNoticeProof(id, dto);
+  }
+
   @Post('actions/:id/publish')
   publish(@Param('id') id: string) {
     return this.committee.publish(id);
@@ -235,8 +284,8 @@ export class CommitteeController {
   }
 
   @Post('appeals/:id/decide')
-  decide(@Param('id') id: string, @Body() dto: DecideAppealDto) {
-    return this.committee.decideAppeal(id, dto);
+  decide(@CurrentStaff() staff: User, @Param('id') id: string, @Body() dto: DecideAppealDto) {
+    return this.committee.decideAppeal(staff, id, dto);
   }
 }
 

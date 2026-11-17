@@ -25,6 +25,36 @@ database, never a database from a previous product.
 
 Never run migrations or the seed against a database the project owner has not named.
 
+## Deploy on the free plans (Supabase and Railway)
+
+Remote changes need the project owner's explicit approval each time. Nothing here runs automatically on deploy.
+
+**Supabase (created by the owner)**
+- Project settings: turn off *Enable Data API* and *Automatically expose new tables*, turn on *Enable automatic RLS*.
+  Browsers never connect to Supabase. Only this API connects, with a Postgres connection string.
+- `DATABASE_URL`: the transaction pooler (port 6543) for the running API. `DIRECT_URL`: the direct string, or the
+  session pooler (port 5432) when the network has no IPv6. The runtime driver (`@prisma/adapter-pg`) ignores
+  Prisma-engine options such as `pgbouncer=true` and `connection_limit`; the pool size is `DB_POOL_MAX` (default 3).
+- Both strings and the database password stay in environment variables, never in the repository. If the TLS check
+  fails with a certificate error, ask the owner before loosening it.
+- Migrations are run by the owner against the named database: `npx prisma migrate deploy` with `DIRECT_URL` set.
+  Seed with `SEED_DEMO=false` (methodology and placeholder staff rows only; staff sign in by wallet).
+
+**Railway**
+- Service root directory `backend`. [railway.json](railway.json) sets the start command and the health check
+  (`/api/v1/health`, which does not query the database). The API and the job worker run in one service (`ROLE=all`).
+- Variables: `NODE_ENV=production`, `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL` (reference the Redis service),
+  `CORS_ORIGINS` (explicit list), `NOTICE_HOURS` (48 or more), `STAFF_WALLETS`, `X_CLIENT_ID`, `X_CLIENT_SECRET`,
+  `X_REDIRECT_URI`, `TOKEN_MINT`, `MEMBER_MIN_BALANCE`, `IP_HASH_SALT`, and `NODE_OPTIONS=--max-old-space-size=384`.
+  Production refuses to boot with an unsafe configuration (see Rules enforced in code).
+- Set the service and Redis to the region closest to the Supabase project, and set a usage limit in Railway.
+
+**Keeping the free plan small**
+- Public GET responses carry `Cache-Control: public, s-maxage=60, stale-while-revalidate=300` (never for requests with a
+  session or API key), and the Next.js app revalidates its pages. List and history queries select only the columns they show.
+- The daily job deletes login nonces and expired sessions, and audit rows older than `AUDIT_RETENTION_DAYS`.
+- No raw post bodies or large JSON in Postgres: evidence rows hold URL, hash and path only.
+
 ## Data model
 
 - `Influencer` is the rated subject. It owns one or more `SocialAccount` rows (`platform` enum: `x`, `youtube`,
@@ -82,10 +112,11 @@ rug within 12 months → at most CCC+ · no verified wallet → at most A. The c
 | GET | /ratings · /ratings/:handle · /ratings/:handle/history · /ratings/:handle/calls | public (full call record for holders) |
 | GET | /actions · /under-review · /stats · /scale · /methodology · /research · /badge/:handle.svg | public |
 | POST | /auth/nonce · /auth/verify · /auth/logout · GET /me · /me/api-keys | Solana wallet session |
-| POST/GET | /claim/start · /claim/verify · /claim/me · /claim/wallets/* · /claim/replies · /claim/appeals | session |
+| POST/GET | /claim/x/start · /claim/x/complete · /claim/me · /claim/wallets/* · /claim/replies · /claim/appeals | session |
 | POST/GET | /tips · /me/tips | holder |
-| * | /admin/** | analyst (takedown: admin) |
-| * | /committee/** | committee |
+| GET | /health | public, not cached, no database query |
+| * | /admin/** | analyst (takedown: admin), wallet on the `STAFF_WALLETS` allowlist |
+| * | /committee/** | committee, wallet on the `STAFF_WALLETS` allowlist |
 | POST/PATCH | /research | analyst / committee |
 
 ## Tests

@@ -1,3 +1,5 @@
+import { parseStaffWallets } from './staff-wallets';
+
 /** Minimum notice period before publication, in hours (CLAUDE.md: never below 48). */
 export const MIN_NOTICE_HOURS = 48;
 
@@ -11,5 +13,11 @@ export function assertProductionConfig(env: Record<string, string | undefined>):
   }
   if (env.SEED_DEMO === 'true') problems.push('SEED_DEMO must not be true');
   if (env.TOKEN_GATE_MOCK_BALANCE) problems.push('TOKEN_GATE_MOCK_BALANCE must not be set');
+  if (env.ROLE !== undefined && !['all', 'api', 'worker'].includes(env.ROLE)) problems.push('ROLE must be all, api or worker');
+  try {
+    parseStaffWallets(env.STAFF_WALLETS);
+  } catch (e) {
+    problems.push((e as Error).message);
+  }
   if (problems.length) throw new Error(`Unsafe production configuration:\n- ${problems.join('\n- ')}`);
 }

@@ -11,6 +11,7 @@ import { Reflector } from '@nestjs/core';
 import { Member, StaffRole, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { sha256 } from './crypto';
+import { parseStaffWallets } from './staff-wallets';
 import { TokenGateService } from './token-gate.service';
 
 // ───────────── Staff (analyst / test_director / admin) ─────────────
@@ -18,18 +19,37 @@ import { TokenGateService } from './token-gate.service';
 export const STAFF_ROLES_KEY = 'staffRoles';
 export const StaffRoles = (...roles: StaffRole[]) => SetMetadata(STAFF_ROLES_KEY, roles);
 
-/** Staff sign in with the `x-staff-key` header (hashed per-person keys). Replaces the previous unauthenticated editor header. */
+/**
+ * Staff sign in with the same wallet session as members (Bearer token). The wallet must be on the
+ * owner-managed STAFF_WALLETS allowlist, which is also the only source of the staff role.
+ */
 @Injectable()
 export class StaffGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService, private readonly reflector: Reflector) {}
 
   async canActivate(ctx: ExecutionContext) {
     const req = ctx.switchToHttp().getRequest();
-    const key = req.headers['x-staff-key'];
-    if (!key || typeof key !== 'string') throw new UnauthorizedException('Missing x-staff-key');
+    const auth: string | undefined = req.headers['authorization'];
+    if (!auth?.startsWith('Bearer ')) throw new UnauthorizedException('Sign in with your wallet first');
 
-    const staff = await this.prisma.user.findUnique({ where: { apiKeyHash: sha256(key) } });
-    if (!staff) throw new UnauthorizedException('Invalid staff key');
+    const session = await this.prisma.memberSession.findUnique({
+      where: { tokenHash: sha256(auth.slice(7)) },
+      include: { member: { select: { walletAddress: true } } },
+    });
+    if (!session || session.expiresAt < new Date()) throw new UnauthorizedException('Sign in with your wallet first');
+
+    const wallet = session.member.walletAddress;
+    const allowedRole = parseStaffWallets(process.env.STAFF_WALLETS).get(wallet);
+    if (!allowedRole) throw new ForbiddenException('This wallet is not authorized for staff access');
+
+    let staff = await this.prisma.user.findUnique({ where: { walletAddress: wallet } });
+    if (!staff) {
+      staff = await this.prisma.user.create({
+        data: { walletAddress: wallet, email: `${wallet}@staff.fides.local`, name: `Staff ${wallet.slice(0, 6)}`, passwordHash: '!', role: allowedRole },
+      });
+    } else if (staff.role !== allowedRole) {
+      staff = await this.prisma.user.update({ where: { id: staff.id }, data: { role: allowedRole } });
+    }
 
     const roles = this.reflector.getAllAndOverride<StaffRole[]>(STAFF_ROLES_KEY, [ctx.getHandler(), ctx.getClass()]);
     if (roles?.length && !roles.includes(staff.role) && staff.role !== 'admin') {

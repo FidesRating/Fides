@@ -1,0 +1,54 @@
+import { Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { createHash, randomBytes } from 'crypto';
+
+/** Adapter for "Login with X". It only proves who controls an X account; no posts are read. */
+export interface XOAuthAdapter {
+  authorizeUrl(state: string, codeChallenge: string): string;
+  /** Exchanges the authorization code and returns the verified X username (lowercase, no @). */
+  verifiedUsername(code: string, codeVerifier: string): Promise<string>;
+}
+
+export const X_OAUTH = Symbol('X_OAUTH');
+
+/** PKCE (RFC 7636, S256): the verifier stays on the server, only its hash goes to X. */
+export function makePkce() {
+  const verifier = randomBytes(32).toString('base64url');
+  const challenge = createHash('sha256').update(verifier).digest('base64url');
+  return { verifier, challenge };
+}
+
+/** Credentials come from the environment only. Without them the claim flow stays closed. */
+@Injectable()
+export class HttpXOAuth implements XOAuthAdapter {
+  private cfg() {
+    const clientId = process.env.X_CLIENT_ID;
+    const redirectUri = process.env.X_REDIRECT_URI;
+    if (!clientId || !redirectUri) throw new ServiceUnavailableException('Profile claims are not open yet');
+    return { clientId, redirectUri, secret: process.env.X_CLIENT_SECRET, api: process.env.X_API_URL || 'https://api.x.com' };
+  }
+
+  authorizeUrl(state: string, codeChallenge: string) {
+    const { clientId, redirectUri } = this.cfg();
+    const q = new URLSearchParams({
+      response_type: 'code', client_id: clientId, redirect_uri: redirectUri, scope: 'users.read tweet.read',
+      state, code_challenge: codeChallenge, code_challenge_method: 'S256',
+    });
+    return `${process.env.X_AUTH_URL || 'https://x.com/i/oauth2/authorize'}?${q}`;
+  }
+
+  async verifiedUsername(code: string, codeVerifier: string) {
+    const { clientId, redirectUri, secret, api } = this.cfg();
+    const headers: Record<string, string> = { 'content-type': 'application/x-www-form-urlencoded' };
+    if (secret) headers.authorization = `Basic ${Buffer.from(`${clientId}:${secret}`).toString('base64')}`;
+    const tokenRes = await fetch(`${api}/2/oauth2/token`, {
+      method: 'POST', headers,
+      body: new URLSearchParams({ code, grant_type: 'authorization_code', client_id: clientId, redirect_uri: redirectUri, code_verifier: codeVerifier }),
+    });
+    const token = tokenRes.ok ? ((await tokenRes.json()) as { access_token?: string }).access_token : undefined;
+    if (!token) throw new UnauthorizedException('X did not confirm this login. Try again.');
+    const meRes = await fetch(`${api}/2/users/me`, { headers: { authorization: `Bearer ${token}` } });
+    const username = meRes.ok ? ((await meRes.json()) as { data?: { username?: string } }).data?.username : undefined;
+    if (!username) throw new UnauthorizedException('Could not read your X account. Try again.');
+    return username.toLowerCase();
+  }
+}
