@@ -13,6 +13,9 @@ export function isValidEvmAddress(a: string) {
   return /^0x[0-9a-fA-F]{40}$/.test(a.trim());
 }
 
+/** Login and staff addresses are stored lowercase so one wallet is always one row, whatever case the wallet app shows. */
+export const normalizeEvmAddress = (a: string) => a.trim().toLowerCase();
+
 export function isValidSolanaAddress(a: string) {
   return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a.trim());
 }

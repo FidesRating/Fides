@@ -7,9 +7,8 @@ import * as assert from 'node:assert/strict';
 import { execSync } from 'node:child_process';
 import { after, before, describe, test } from 'node:test';
 import { createHash } from 'node:crypto';
-import bs58 from 'bs58';
+import { Wallet } from 'ethers';
 import { Client } from 'pg';
-import * as nacl from 'tweetnacl';
 
 const BASE_URL = process.env.TEST_ADMIN_URL ?? 'postgresql://fides:fides@localhost:5432/postgres';
 const TEST_DB = 'fides_test';
@@ -23,7 +22,10 @@ const KEYS: Record<keyof typeof ROLE_OF, string> = {
   analyst: 'test-analyst-token', committeeA: 'test-committee-a-token', committeeB: 'test-committee-b-token',
   committeeC: 'test-committee-c-token', committeeD: 'test-committee-d-token', admin: 'test-admin-token',
 };
-const WALLETS = Object.fromEntries(Object.keys(ROLE_OF).map((k) => [k, bs58.encode(nacl.sign.keyPair().publicKey)])) as Record<keyof typeof ROLE_OF, string>;
+type Signer = { address: string; signMessage(message: string): Promise<string> };
+const SIGNERS = Object.fromEntries(Object.keys(ROLE_OF).map((k) => [k, Wallet.createRandom()])) as unknown as Record<keyof typeof ROLE_OF, Signer>;
+const WALLETS = Object.fromEntries(Object.entries(SIGNERS).map(([k, w]) => [k, w.address.toLowerCase()])) as Record<keyof typeof ROLE_OF, string>;
+const randomAddress = () => Wallet.createRandom().address.toLowerCase();
 
 let origin = '';
 let close: () => Promise<void> = async () => undefined;
@@ -289,6 +291,61 @@ describe('committee flow, notice, appeal and watch (Phase 3)', () => {
   });
 });
 
+describe('wallet login with an EVM wallet', () => {
+  const login = async (signer: Signer, opts: { address?: string; signWith?: Signer } = {}) => {
+    const address = opts.address ?? signer.address;
+    const n = await api('/auth/nonce', { method: 'POST', body: { walletAddress: address } });
+    if (n.status >= 400) return { nonce: n, verify: null as null | Awaited<ReturnType<typeof api>> };
+    const signature = await (opts.signWith ?? signer).signMessage(n.json.message);
+    return { nonce: n, verify: await api('/auth/verify', { method: 'POST', body: { walletAddress: address, nonce: n.json.nonce, signature } }), signature };
+  };
+  const authed = (token: string, path: string) =>
+    fetch(`${origin}/api/v1${path}`, { headers: { authorization: `Bearer ${token}` } }).then(async (r) => ({ status: r.status, text: await r.text() }));
+
+  test('a signature from the wallet opens a session, whatever case the address is written in', async () => {
+    const signer = Wallet.createRandom();
+    const r = await login(signer, { address: signer.address.toLowerCase() });
+    assert.ok(r.verify && (r.verify.status === 200 || r.verify.status === 201), r.verify?.text);
+    const me = await authed(r.verify!.json.token, '/me');
+    assert.equal(me.status, 200);
+    assert.equal(JSON.parse(me.text).walletAddress, signer.address.toLowerCase());
+    // The same wallet in checksum case is the same member, not a second row.
+    const again = await login(signer);
+    assert.ok(again.verify && (again.verify.status === 200 || again.verify.status === 201));
+    assert.equal(await prisma.member.count({ where: { walletAddress: signer.address.toLowerCase() } }), 1);
+  });
+
+  test('a Solana address, a wrong signer, a used nonce and a made-up signature are all refused', async () => {
+    assert.equal((await api('/auth/nonce', { method: 'POST', body: { walletAddress: '11111111111111111111111111111112' } })).status, 400);
+    const signer = Wallet.createRandom();
+    const wrong = await login(signer, { signWith: Wallet.createRandom() });
+    assert.equal(wrong.verify?.status, 400);
+
+    const ok = await login(signer);
+    assert.ok(ok.verify && (ok.verify.status === 200 || ok.verify.status === 201));
+    const replay = await api('/auth/verify', { method: 'POST', body: { walletAddress: signer.address, nonce: ok.nonce.json.nonce, signature: ok.signature } });
+    assert.equal(replay.status, 401, 'a nonce works once');
+    const fake = await api('/auth/verify', { method: 'POST', body: { walletAddress: signer.address, nonce: 'nope', signature: '0x00' } });
+    assert.equal(fake.status, 401);
+  });
+
+  test('staff: a wallet on the allowlist signs in for real and reaches the committee queue; other wallets get 403', async () => {
+    const staff = await login(SIGNERS.committeeA);
+    assert.ok(staff.verify && (staff.verify.status === 200 || staff.verify.status === 201), staff.verify?.text);
+    assert.equal((await authed(staff.verify!.json.token, '/committee/queue')).status, 200);
+
+    const outsider = await login(Wallet.createRandom());
+    assert.equal((await authed(outsider.verify!.json.token, '/committee/queue')).status, 403);
+    assert.equal((await authed(outsider.verify!.json.token, '/admin/influencers')).status, 403);
+  });
+
+  test('the holder gate stays closed while the token contract is not configured', async () => {
+    const { json } = (await login(Wallet.createRandom())).verify!;
+    assert.equal(json.member.isHolder, false);
+    assert.equal((await api('/tips', { method: 'POST', key: json.token, body: { handle: 'lunar_alpha', kind: 'other', evidenceUrl: 'https://example.com/x' } })).status, 403);
+  });
+});
+
 describe('profile claim through Login with X', () => {
   const ok = (s: number) => s === 200 || s === 201;
   let xUsername = 'claim_acct';
@@ -296,7 +353,7 @@ describe('profile claim through Login with X', () => {
   const saved = { id: process.env.X_CLIENT_ID, uri: process.env.X_REDIRECT_URI, api: process.env.X_API_URL };
 
   const newMember = async (label: string) => {
-    const member = await prisma.member.create({ data: { walletAddress: bs58.encode(nacl.sign.keyPair().publicKey) } });
+    const member = await prisma.member.create({ data: { walletAddress: randomAddress() } });
     const token = `test-member-${label}`;
     await prisma.memberSession.create({ data: { memberId: member.id, tokenHash: createHash('sha256').update(token).digest('hex'), expiresAt: new Date(Date.now() + 86400_000) } });
     return { member, token };
@@ -399,7 +456,7 @@ describe('free-plan guardrails (Supabase and Railway)', () => {
   test('the daily job prunes expired nonces and sessions and old audit rows, and keeps recent ones', async () => {
     const { SurveillanceService } = await import('../src/queue/surveillance');
     const day = 86400_000;
-    const member = await prisma.member.create({ data: { walletAddress: bs58.encode(nacl.sign.keyPair().publicKey) } });
+    const member = await prisma.member.create({ data: { walletAddress: randomAddress() } });
     const mk = (nonce: string, ageDays: number) => ({ walletAddress: member.walletAddress, nonce, purpose: 'login', message: 'm', expiresAt: new Date(Date.now() - ageDays * day) });
     await prisma.authNonce.createMany({ data: [mk('prune-old-nonce', 3), mk('prune-new-nonce', 0)] });
     await prisma.memberSession.createMany({

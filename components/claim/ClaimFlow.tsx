@@ -5,9 +5,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api/v1`;
 const TOKEN_KEY = 'fides_session';
 
-interface PhantomProvider {
-  connect(): Promise<{ publicKey: { toString(): string } }>;
-  signMessage(message: Uint8Array, display: 'utf8'): Promise<{ signature: Uint8Array }>;
+/** Any injected EVM wallet (EIP-1193), for example MetaMask. */
+interface EvmProvider {
+  request(args: { method: string; params?: unknown[] }): Promise<unknown>;
 }
 
 interface Notice { actionId: string; rating: string | null; publishAfter: string | null; message: string }
@@ -23,7 +23,7 @@ const readToken = () => {
 const writeToken = (t: string | null) => {
   try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
 };
-const toHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+const utf8ToHex = (text: string) => '0x' + Array.from(new TextEncoder().encode(text), (b) => b.toString(16).padStart(2, '0')).join('');
 const fmt = (iso: string | null) => (iso ? new Date(iso).toUTCString() : '');
 
 export default function ClaimFlow() {
@@ -82,14 +82,15 @@ export default function ClaimFlow() {
     setBusy(true);
     setMessage('');
     try {
-      const phantom = (window as unknown as { solana?: PhantomProvider }).solana;
-      if (!phantom) { setMessage('Install a Solana wallet such as Phantom to sign in.'); return; }
-      const { publicKey } = await phantom.connect();
-      const walletAddress = publicKey.toString();
+      const wallet = (window as unknown as { ethereum?: EvmProvider }).ethereum;
+      if (!wallet) { setMessage('Install an EVM wallet such as MetaMask to sign in.'); return; }
+      const accounts = (await wallet.request({ method: 'eth_requestAccounts' })) as string[];
+      const walletAddress = accounts[0];
       const n = await call('/auth/nonce', null, { walletAddress });
       if (!n.ok) { setMessage(errorText(n)); return; }
-      const { signature } = await phantom.signMessage(new TextEncoder().encode(n.json.message), 'utf8');
-      const v = await call('/auth/verify', null, { walletAddress, nonce: n.json.nonce, signature: toHex(signature) });
+      // personal_sign: a signature only, no transaction and no fee.
+      const signature = (await wallet.request({ method: 'personal_sign', params: [utf8ToHex(n.json.message), walletAddress] })) as string;
+      const v = await call('/auth/verify', null, { walletAddress, nonce: n.json.nonce, signature });
       if (!v.ok) { setMessage(errorText(v)); return; }
       writeToken(v.json.token);
       setToken(v.json.token);

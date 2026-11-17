@@ -472,7 +472,7 @@ model AppealVote {
 
 model Member {
   id                 String    @id @default(uuid())
-  walletAddress      String    @unique // Solana (login)
+  walletAddress      String    @unique // EVM address, lowercase (login)
   tokenBalance       Decimal   @default(0) @db.Decimal(30, 9)
   lastBalanceCheckAt DateTime?
   createdAt          DateTime  @default(now())

@@ -45,7 +45,7 @@ Remote changes need the project owner's explicit approval each time. Nothing her
   (`/api/v1/health`, which does not query the database). The API and the job worker run in one service (`ROLE=all`).
 - Variables: `NODE_ENV=production`, `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL` (reference the Redis service),
   `CORS_ORIGINS` (explicit list), `NOTICE_HOURS` (48 or more), `STAFF_WALLETS`, `X_CLIENT_ID`, `X_CLIENT_SECRET`,
-  `X_REDIRECT_URI`, `TOKEN_MINT`, `MEMBER_MIN_BALANCE`, `IP_HASH_SALT`, and `NODE_OPTIONS=--max-old-space-size=384`.
+  `X_REDIRECT_URI`, `TOKEN_CONTRACT`, `TOKEN_RPC_URL`, `MEMBER_MIN_BALANCE`, `IP_HASH_SALT`, and `NODE_OPTIONS=--max-old-space-size=384`.
   Production refuses to boot with an unsafe configuration (see Rules enforced in code).
 - Set the service and Redis to the region closest to the Supabase project, and set a usage limit in Railway.
 
@@ -102,7 +102,8 @@ rug within 12 months → at most CCC+ · no verified wallet → at most A. The c
 - A rating cannot be published before the notice period ends.
 - A takedown (admin) removes the account from every public endpoint (410 Gone), including related articles.
 - Public APIs never contain committee votes, staff names, member login wallets or unconfirmed evidence.
-- The holder gate has no default token mint or threshold. While `TOKEN_MINT` or `MEMBER_MIN_BALANCE` is unset, nobody counts as a holder.
+- The holder gate reads an ERC-20 balance on an EVM chain. It has no default token contract, RPC URL or threshold: while
+  `TOKEN_CONTRACT`, `TOKEN_RPC_URL` or `MEMBER_MIN_BALANCE` is unset, nobody counts as a holder. An RPC failure never revokes access.
 - Production refuses to boot with missing `CORS_ORIGINS`, `NOTICE_HOURS` below 48, `SEED_DEMO=true` or a mock balance.
 
 ## Endpoints (prefix `/api/v1`)
@@ -111,7 +112,7 @@ rug within 12 months → at most CCC+ · no verified wallet → at most A. The c
 | --- | --- | --- |
 | GET | /ratings · /ratings/:handle · /ratings/:handle/history · /ratings/:handle/calls | public (full call record for holders) |
 | GET | /actions · /under-review · /stats · /scale · /methodology · /research · /badge/:handle.svg | public |
-| POST | /auth/nonce · /auth/verify · /auth/logout · GET /me · /me/api-keys | Solana wallet session |
+| POST | /auth/nonce · /auth/verify · /auth/logout · GET /me · /me/api-keys | EVM wallet session (`personal_sign`) |
 | POST/GET | /claim/x/start · /claim/x/complete · /claim/me · /claim/wallets/* · /claim/replies · /claim/appeals | session |
 | POST/GET | /tips · /me/tips | holder |
 | GET | /health | public, not cached, no database query |

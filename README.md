@@ -152,7 +152,7 @@ Only public accounts with at least **10,000 followers** that regularly recommend
 - **Framework:** NestJS 11 (Node.js, TypeScript)
 - **Database:** PostgreSQL with Prisma 6.19 (Rust-free client via `@prisma/adapter-pg`)
 - **Async Queue:** Redis + BullMQ
-- **Auth:** Solana wallet sessions for members, hashed per-person keys for staff
+- **Auth:** EVM wallet sessions (personal_sign) for members and staff; staff roles come from the `STAFF_WALLETS` allowlist
 
 ---
 
@@ -201,7 +201,7 @@ Only public accounts with at least **10,000 followers** that regularly recommend
    cd .. && npm run lint && npm run check:brand && npm run build
    ```
 
-The seed creates a **fictional** account (`@lunar_alpha`, scorecard 66 → BBB+, committee BBB, Outlook Negative) for development only. Production must set `SEED_DEMO=false`. The holder gate has no default token mint or threshold: until `TOKEN_MINT` and `MEMBER_MIN_BALANCE` are set, nobody counts as a holder.
+The seed creates a **fictional** account (`@lunar_alpha`, scorecard 66 → BBB+, committee BBB, Outlook Negative) for development only. Production must set `SEED_DEMO=false`. The holder gate has no default token contract, RPC URL or threshold: until `TOKEN_CONTRACT`, `TOKEN_RPC_URL` and `MEMBER_MIN_BALANCE` are set, nobody counts as a holder.
 
 ---
 
