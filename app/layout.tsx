@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Fraunces, IBM_Plex_Mono, Inter } from 'next/font/google';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
+import Splash from '@/components/Splash';
 import Ticker from '@/components/Ticker';
 import './globals.css';
 import './polish.css';
@@ -23,8 +24,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${plexMono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${fraunces.variable} ${inter.variable} ${plexMono.variable}`}>
       <body>
+        <Splash />
         <Ticker />
         <div className="wrap">
           <Header />

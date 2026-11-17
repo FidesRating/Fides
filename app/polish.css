@@ -298,3 +298,10 @@ footer .brand-logo { width: 34px; }
   .loading-logo { animation: logoPulse 1.4s ease-in-out infinite; }
   @keyframes logoPulse { 0%, 100% { opacity: 0.45; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1); } }
 }
+
+/* Splash: painted with the first frame, held briefly, then faded out. Skipped after the first load of a session and for reduced motion. */
+.splash { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: var(--paper); animation: splashOut 0.45s ease 0.9s forwards; }
+.splash-logo { width: 112px; height: auto; animation: logoPulse 1.4s ease-in-out infinite; }
+.no-splash .splash { display: none; }
+@keyframes splashOut { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .splash { display: none; } }
