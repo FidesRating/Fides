@@ -68,6 +68,22 @@ export default function StaffConsole() {
     await signOutSession(tok);
   }
 
+  async function addInfluencer(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!token) return;
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    setBusy(true);
+    const r = await apiCall('/admin/influencers', token, {
+      handle: String(data.get('handle') ?? '').trim(),
+      displayName: String(data.get('displayName') ?? '').trim(),
+      followers: Number(data.get('followers')),
+    });
+    setBusy(false);
+    if (r.ok) { form.reset(); setMessage(`Added @${r.json.handle}.`); await load(token); }
+    else setMessage(errorText(r));
+  }
+
   const showAnalyst = me?.role === 'analyst' || me?.role === 'admin';
   const showCommittee = me?.role === 'committee' || me?.role === 'admin';
 
@@ -99,6 +115,14 @@ export default function StaffConsole() {
 
           {showAnalyst && (
             <div>
+              <h3>Add influencer</h3>
+              <p>Public X account only. The server rejects accounts below the follower minimum and handles already tracked.</p>
+              <form onSubmit={addInfluencer} style={{ display: 'grid', gap: 10, maxWidth: 420, margin: '10px 0 22px' }}>
+                <input name="handle" placeholder="X handle, for example example_user" required maxLength={16} pattern="@?[A-Za-z0-9_]{1,15}" />
+                <input name="displayName" placeholder="Display name" required maxLength={60} />
+                <input name="followers" type="number" min={0} step={1} placeholder="Followers" required />
+                <div className="btns"><button className="btn primary" type="submit" disabled={busy}>Add influencer</button></div>
+              </form>
               <h3>Influencers ({influencers.length})</h3>
               {influencers.length === 0 ? <p>None yet.</p> : (
                 <ul>
