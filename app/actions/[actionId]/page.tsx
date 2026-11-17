@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const res = await getActionCard(actionId);
   if (res.state !== 'ok') return { title: 'Rating action', robots: { index: false } };
   return {
-    title: `${res.data.actionId} · @${res.data.handle} — FIDES rating action`,
+    title: `${res.data.actionId} · @${res.data.handle} | FIDES rating action`,
     description: `${summary(res.data)} A FIDES rating is an opinion, not advice.`,
     twitter: { card: 'summary_large_image' },
   };

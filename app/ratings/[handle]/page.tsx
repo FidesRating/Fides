@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const outlook = rating.outlook ? `, Outlook ${OUTLOOK[rating.outlook]?.label ?? rating.outlook}` : '';
   const summary = rating.rationale ?? `FIDES rating ${formatRating(rating.rating)} based on public data and a published methodology.`;
   return {
-    title: { absolute: `@${res.data.account.handle} — FIDES rating ${formatRating(rating.rating)}${outlook}` },
+    title: { absolute: `@${res.data.account.handle} | FIDES rating ${formatRating(rating.rating)}${outlook}` },
     description: `${summary.split(/(?<=[.!?])\s/)[0]} Updated ${formatDate(rating.publishedAt)}.`,
   };
 }
@@ -31,7 +31,7 @@ export default async function ReportPage({ params }: Props) {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: `@${account.handle} — FIDES rating ${formatRating(rating.rating)}`,
+    headline: `@${account.handle} | FIDES rating ${formatRating(rating.rating)}`,
     datePublished: rating.publishedAt,
     publisher: { '@type': 'Organization', name: 'FIDES' },
   };

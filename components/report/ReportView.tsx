@@ -3,7 +3,7 @@ import type { CallRow, Report } from '@/lib/api';
 import { ACTION_CLASS, ACTION_LABEL, BAND_CLASS, BAND_LABEL, OUTLOOK, formatDate, formatRating, watchLabel } from '@/lib/format';
 
 const pct = (n: number | null) =>
-  n === null ? <span className="rl-dash">—</span> : <span className={n >= 0 ? 'pos' : 'neg'}>{`${n >= 0 ? '+' : ''}${(n * 100).toFixed(1)}%`}</span>;
+  n === null ? <span className="rl-dash">n/a</span> : <span className={n >= 0 ? 'pos' : 'neg'}>{`${n >= 0 ? '+' : ''}${(n * 100).toFixed(1)}%`}</span>;
 
 const monthYear = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
@@ -31,7 +31,7 @@ function ProofCell({ c }: { c: CallRow }) {
   const link = c.deleted ? c.archiveUrl : c.postUrl;
   return (
     <>
-      {link ? <a className="mono" style={{ color: 'var(--brass)', fontSize: 12 }} href={link} target="_blank" rel="noopener noreferrer">{c.deleted ? 'archive ↗' : 'post ↗'}</a> : <span className="rl-dash">—</span>}
+      {link ? <a className="mono" style={{ color: 'var(--brass)', fontSize: 12 }} href={link} target="_blank" rel="noopener noreferrer">{c.deleted ? 'archive ↗' : 'post ↗'}</a> : <span className="rl-dash">n/a</span>}
       {snap && <span className="note" title={`sha256 ${snap.contentHash}`} style={{ marginLeft: 8 }}>#{snap.contentHash.slice(0, 8)}</span>}
     </>
   );
@@ -73,7 +73,7 @@ export default function ReportView({ r }: { r: Report }) {
           <div className="rep-big in">
             <div className={`letter ${b}`} aria-label={`Rating ${formatRating(rated)}, ${BAND_LABEL[band]}`}>{formatRating(rated)}</div>
             <div className="side">
-              <span>Scorecard <b>{rating.scorecard.totalScore ?? '—'}{rating.scorecard.scorecardRating ? ` → ${formatRating(rating.scorecard.scorecardRating)}` : ''}</b></span>
+              <span>Scorecard <b>{rating.scorecard.totalScore ?? 'n/a'}{rating.scorecard.scorecardRating ? ` → ${formatRating(rating.scorecard.scorecardRating)}` : ''}</b></span>
               <span>Committee <b>{formatRating(rated)}</b></span>
               {caps.length > 0 && <span style={{ color: 'var(--brass)' }}>{caps.join(', ')}</span>}
             </div>
@@ -143,8 +143,8 @@ export default function ReportView({ r }: { r: Report }) {
                   <td><ProofCell c={c} /></td>
                   <td className="mono">{pct(c.return7d)}</td><td className="mono">{pct(c.return30d)}</td><td className="mono">{pct(c.return90d)}</td>
                   <td className="mono">{pct(c.excessVsBtc30d)}</td>
-                  <td>{c.paidPromotion ? <span className={`flag ${c.paidPromotion === 'disclosed' ? 'ok' : 'bad'}`}>{c.paidPromotion}</span> : <span className="rl-dash">—</span>}</td>
-                  <td>{c.deleted ? <span className="flag bad">deleted</span> : c.rugConfirmed ? <span className="flag bad">rug</span> : <span className="rl-dash">—</span>}</td>
+                  <td>{c.paidPromotion ? <span className={`flag ${c.paidPromotion === 'disclosed' ? 'ok' : 'bad'}`}>{c.paidPromotion}</span> : <span className="rl-dash">n/a</span>}</td>
+                  <td>{c.deleted ? <span className="flag bad">deleted</span> : c.rugConfirmed ? <span className="flag bad">rug</span> : <span className="rl-dash">n/a</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -163,7 +163,7 @@ export default function ReportView({ r }: { r: Report }) {
                 <tbody>
                   {evidence.paidPromotions.map((p) => (
                     <tr key={p.evidenceUrl}>
-                      <td className="mono">{p.call?.token ?? '—'}</td>
+                      <td className="mono">{p.call?.token ?? 'n/a'}</td>
                       <td className="wrap">{p.source.replace(/_/g, ' ')}</td>
                       <td><a className="mono" style={{ color: 'var(--brass)', fontSize: 12 }} href={p.evidenceUrl} target="_blank" rel="noopener noreferrer">link ↗</a>{p.snapshots[0] && <span className="note" title={`sha256 ${p.snapshots[0].contentHash}`} style={{ marginLeft: 8 }}>#{p.snapshots[0].contentHash.slice(0, 8)}</span>}</td>
                       <td><span className={`flag ${p.disclosed ? 'ok' : 'bad'}`}>{p.disclosed ? 'yes' : 'no'}</span></td>

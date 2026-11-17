@@ -36,10 +36,10 @@ export default function RatingsTable({ items }: { items: RatingListItem[] }) {
                     <span className={`rl-band ${b}`}>{BAND_LABEL[r.band]}</span>
                   </div>
                 </td>
-                <td>{o ? <span className={`rl-out ${o.tone}`}><b aria-hidden="true">{o.arrow}</b>{o.label}</span> : <span className="rl-dash">—</span>}</td>
-                <td>{r.watch ? <span className="rl-watch">{watchLabel(r.watch)}</span> : <span className="rl-dash">—</span>}</td>
-                <td>{r.totalScore ?? '—'}</td>
-                <td>{r.weakestPillar ?? '—'}</td>
+                <td>{o ? <span className={`rl-out ${o.tone}`}><b aria-hidden="true">{o.arrow}</b>{o.label}</span> : <span className="rl-dash">n/a</span>}</td>
+                <td>{r.watch ? <span className="rl-watch">{watchLabel(r.watch)}</span> : <span className="rl-dash">n/a</span>}</td>
+                <td>{r.totalScore ?? 'n/a'}</td>
+                <td>{r.weakestPillar ?? 'n/a'}</td>
                 <td className="rl-act">{ACTION_LABEL[r.lastAction.type] ?? r.lastAction.type}</td>
                 <td>{formatDate(r.lastAction.publishedAt)}</td>
               </tr>

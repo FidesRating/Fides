@@ -9,7 +9,7 @@ type Props = { params: Promise<{ handle: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params;
-  return { title: `@${handle} — Rating history`, description: `Every FIDES rating action for @${handle}, newest first.` };
+  return { title: `@${handle} | Rating history`, description: `Every FIDES rating action for @${handle}, newest first.` };
 }
 
 export default async function HistoryPage({ params }: Props) {
@@ -21,7 +21,7 @@ export default async function HistoryPage({ params }: Props) {
   const current = rows.find((r) => r.current);
 
   const badge = (r: string | null) =>
-    r ? <span className={`rb ${BAND_CLASS[bandOfRating(r)]}`} style={{ fontSize: 15, minWidth: 52 }}>{formatRating(r)}</span> : <span className="rl-dash">—</span>;
+    r ? <span className={`rb ${BAND_CLASS[bandOfRating(r)]}`} style={{ fontSize: 15, minWidth: 52 }}>{formatRating(r)}</span> : <span className="rl-dash">n/a</span>;
 
   return (
     <div className="page-stack">
@@ -46,8 +46,8 @@ export default async function HistoryPage({ params }: Props) {
                   <td><span className={`rl-act ${ACTION_CLASS[h.type] === 'up' || ACTION_CLASS[h.type] === 'down' ? ACTION_CLASS[h.type] : ''}`}>{ACTION_LABEL[h.type] ?? h.type}</span></td>
                   <td>{badge(h.previousRating)}</td>
                   <td>{badge(h.rating)}</td>
-                  <td className="mono">{h.outlook ? OUTLOOK[h.outlook]?.label ?? h.outlook : '—'}</td>
-                  <td>{h.watch ? <span className="rl-watch">{watchLabel(h.watch).toUpperCase()}</span> : <span className="rl-dash">—</span>}</td>
+                  <td className="mono">{h.outlook ? OUTLOOK[h.outlook]?.label ?? h.outlook : 'n/a'}</td>
+                  <td>{h.watch ? <span className="rl-watch">{watchLabel(h.watch).toUpperCase()}</span> : <span className="rl-dash">n/a</span>}</td>
                 </tr>
               ))}
             </tbody>

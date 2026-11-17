@@ -1,7 +1,7 @@
 import type { Band } from './api';
 
 // The API uses ASCII "-" in rating codes; the UI shows the typographic minus.
-export const formatRating = (r: string | null) => (r ? r.replace('-', '−') : '—');
+export const formatRating = (r: string | null) => (r ? r.replace('-', '−') : 'n/a');
 
 export const OUTLOOK: Record<string, { arrow: string; label: string; tone: 'pos' | 'neg' | 'dev' | '' }> = {
   positive: { arrow: '↑', label: 'Positive', tone: 'pos' },

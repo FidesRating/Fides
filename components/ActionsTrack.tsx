@@ -13,7 +13,7 @@ export function ActionCard({ a }: { a: RatingAction }) {
         <span className="to">{formatRating(a.rating)}</span>
       </span>
       <span className="foot">
-        <span>{outlook ? `${outlook.arrow} ${outlook.label}` : '—'}</span>
+        <span>{outlook ? `${outlook.arrow} ${outlook.label}` : 'n/a'}</span>
         <span>{formatDate(a.publishedAt)}</span>
       </span>
     </Link>

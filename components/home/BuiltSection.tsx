@@ -9,7 +9,7 @@ export default function BuiltSection() {
         </div>
         <div className="l">
           <p className="sub">Data is gathered and scored with an AI stack, then voted on by a human Rating Committee before anything is published.</p>
-          <span className="tag" style={{ whiteSpace: 'normal', alignSelf: 'flex-start', fontSize: '11.5px', padding: '6px 10px', borderColor: 'var(--brass)', color: 'var(--brass)' }}>VOTED BY A COMMITTEE — no rating is published by a model.</span>
+          <span className="tag" style={{ whiteSpace: 'normal', alignSelf: 'flex-start', fontSize: '11.5px', padding: '6px 10px', borderColor: 'var(--brass)', color: 'var(--brass)' }}>VOTED BY A COMMITTEE. No rating is published by a model.</span>
         </div>
         <div className="seal" aria-hidden="true">
           <svg viewBox="0 0 128 128"><defs><path id="circ" d="M64 64m-50 0a50 50 0 1 1 100 0a50 50 0 1 1-100 0"/></defs><text fontFamily="IBM Plex Mono,monospace" fontSize="9.6" letterSpacing="2.4" fill="#7c1522"><textPath href="#circ">COMMITTEE RATED ✦ PUBLIC DATA ✦ RIGHT OF REPLY ✦</textPath></text></svg>
