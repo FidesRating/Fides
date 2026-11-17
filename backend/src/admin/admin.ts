@@ -580,5 +580,15 @@ export class AdminController {
   }
 }
 
-@Module({ imports: [RatingModule, ProvidersModule], controllers: [AdminController], providers: [AdminService] })
+/** Tells a signed-in staff wallet which role the allowlist gave it. Any staff role may call it. */
+@Controller('staff')
+@UseGuards(StaffGuard)
+export class StaffController {
+  @Get('me')
+  me(@CurrentStaff() staff: User) {
+    return { role: staff.role, walletAddress: staff.walletAddress };
+  }
+}
+
+@Module({ imports: [RatingModule, ProvidersModule], controllers: [AdminController, StaffController], providers: [AdminService] })
 export class AdminModule {}
