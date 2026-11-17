@@ -97,7 +97,7 @@ export function CommitteePanel({ ctx, onCount }: { ctx: Ctx; onCount: (n: number
 
               {!a.conflicted && (
                 <form style={row} onSubmit={async (e) => { e.preventDefault(); const f = e.currentTarget; const r = await act('/committee/conflicts', { influencerId: a.influencer.id, reason: val(f, 'reason') }, 'POST', 'Conflict declared. You are recused from open actions on this account.'); if (r.ok) f.reset(); }}>
-                  <input name="reason" placeholder="Declare a conflict with this account: reason" maxLength={300} required style={{ minWidth: 280 }} />
+                  <input name="reason" placeholder="Declare a conflict with this account: reason" maxLength={300} required style={{ flex: '1 1 200px', minWidth: 0 }} />
                   <button className="btn" disabled={ctx.busy}>Declare conflict</button>
                 </form>
               )}

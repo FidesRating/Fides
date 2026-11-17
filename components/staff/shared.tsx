@@ -9,7 +9,8 @@ export interface Ctx {
   busy: boolean;
 }
 
-export const panel: React.CSSProperties = { padding: 22, display: 'grid', gap: 16 };
+/** Padding shrinks on phones so nested boxes keep room for their fields. */
+export const panel: React.CSSProperties = { padding: 'clamp(14px, 4vw, 22px)', display: 'grid', gap: 16 };
 export const row: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' };
 
 /** Coverage rule: the server rejects public accounts below this follower count. Keep it equal to RULES.minFollowers in the backend. */

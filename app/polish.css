@@ -256,7 +256,15 @@ footer .fc .socials a:hover { transform: translateY(-2px); background: var(--bra
   .split > * + * { border-left: 0; border-top: 1px solid var(--line-2); }
   .desk { border-bottom: 1px solid var(--line-2); }
 }
+/* Below 1180px the menu no longer fits beside the brand and the claim button. Put it on a second row and let it wrap,
+   so every item stays visible instead of hiding the last ones behind a sideways scroll. */
+@media (max-width: 1180px) {
+  .top { grid-template-columns: minmax(0, 1fr) auto; }
+  .nav { grid-column: 1 / -1; grid-row: 2; border-top: 1px solid var(--line-2); height: auto; flex-wrap: wrap; overflow-x: visible; }
+  .nav a { min-height: 40px; }
+}
 @media (max-width: 760px) {
+  .nav a { padding: 0 12px; }
   .wrap { padding: 0 12px; }
   .box { border-radius: var(--radius-md); }
   .hero-copy { padding: 32px 20px 26px; }
