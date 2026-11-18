@@ -44,6 +44,7 @@ export default function ReportView({ r }: { r: Report }) {
   const outlook = rating.outlook ? OUTLOOK[rating.outlook] : null;
   const pillars = rating.scorecard.pillars;
   const low = pillars ? Math.min(...pillars.map((p) => p.score)) : null;
+  const weakest = pillars?.find((p) => p.score === low) ?? null;
   const caps = rating.scorecard.appliedCaps;
   const rated = rating.rating ?? 'NR';
 
@@ -95,8 +96,23 @@ export default function ReportView({ r }: { r: Report }) {
           <span className="eyebrow">COMMITTEE SUMMARY</span>
           {rating.rationale
             ? <p className="rationale">“{rating.rationale}”</p>
-            : <p>The committee rating matches the scorecard.</p>}
+            : <p>The committee rating matches the scorecard, so no separate rationale is published.</p>}
           {rating.scorecard.differsFromScorecard && <p className="note">The final rating differs from the scorecard. The committee&apos;s reason is published above.</p>}
+          {pillars && (
+            <p>
+              Final rating <b>{formatRating(rated)}</b> ({BAND_LABEL[band].toLowerCase()}), scorecard total {rating.scorecard.totalScore ?? 'n/a'}.
+              {weakest ? ` The weakest pillar is ${weakest.label} at ${weakest.score}.` : ''}
+              {rating.outlookText ? ` ${rating.outlookText}` : ''}
+            </p>
+          )}
+          <dl className="facts">
+            <div><dt>Measurable calls</dt><dd>{rating.scorecard.measurableCalls} of {calls.total}</dd></div>
+            <div><dt>Hit rate</dt><dd>{rating.scorecard.hitRate === null ? 'n/a' : `${Math.round(rating.scorecard.hitRate * 100)}%`}</dd></div>
+            <div><dt>Median 30-day excess vs BTC</dt><dd>{pct(rating.scorecard.medianExcess30d)}</dd></div>
+            <div><dt>Caps applied</dt><dd>{caps.length ? caps.join(', ') : 'None'}</dd></div>
+            <div><dt>Published</dt><dd>{formatDate(rating.publishedAt)}</dd></div>
+            <div><dt>Next full review</dt><dd>{monthYear(r.nextFullReview)}</dd></div>
+          </dl>
         </div>
         <div className="panel">
           <span className="eyebrow">SCORECARD</span>
@@ -172,7 +188,12 @@ export default function ReportView({ r }: { r: Report }) {
                 </tbody>
               </table>
             </div>
-          ) : <div className="panel"><p>No proven paid promotion.</p></div>}
+          ) : (
+            <div className="panel">
+              <p>No proven paid promotion.</p>
+              <p className="note">A promotion counts only when it is proven by public evidence, by the project&apos;s own statement, or by an on-chain payment to a wallet the account declared itself. With none proven, Disclosure is scored 100.</p>
+            </div>
+          )}
         </div>
         <div>
           <div className="secbar"><h3>Verified wallets</h3><span className="note">{evidence.wallets.length} verified</span></div>
@@ -205,7 +226,13 @@ export default function ReportView({ r }: { r: Report }) {
           <span className="eyebrow">ACCOUNT&apos;S REPLY · UNEDITED</span>
           {rating.reply
             ? <><div className="reply">{rating.reply.body}</div><span className="note">Posted by @{account.handle} through a claimed profile.</span></>
-            : <p>No reply yet.{account.coverage === 'Unsolicited' ? ' The account has not claimed its profile; it was notified 48 hours before publication.' : ''}</p>}
+            : (
+              <>
+                <p>No reply yet.{account.coverage === 'Unsolicited' ? ' The account has not claimed its profile.' : ''}</p>
+                <p className="note">A claimed account can reply during the notice period and after publication, and can appeal the rating once. A reply is shown here unedited, beside the rating.</p>
+                {account.coverage === 'Unsolicited' && <Link className="btn" href="/claim" style={{ alignSelf: 'flex-start' }}>Is this your account? Claim it ↗</Link>}
+              </>
+            )}
         </div>
         <div className="panel">
           <span className="eyebrow">RATING HISTORY</span>
