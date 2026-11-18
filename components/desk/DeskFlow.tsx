@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { apiCall, errorText, readToken, signInWithWallet, signOutSession, writeToken } from '@/lib/session';
+import { useWalletGuard } from '@/lib/walletGuard';
 
 interface Me { walletAddress: string; tokenBalance: number; minBalance: number | null; isHolder: boolean }
 interface WatchItem { handle: string; displayName: string | null; current: { rating: string | null; outlook: string | null; watch: string | null } | null }
@@ -61,6 +62,8 @@ export default function DeskFlow() {
     setMessage('');
     await signOutSession(tok);
   }
+
+  useWalletGuard(!!token, () => { signOut(); setMessage('Your wallet changed, so you were signed out. Sign in again.'); });
 
   /** Runs one API call, shows the outcome, and refreshes the lists. */
   async function act(path: string, body: unknown, method: string | undefined, done: string) {

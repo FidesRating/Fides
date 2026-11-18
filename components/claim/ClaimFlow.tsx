@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiCall, connectedAccount, errorText, readToken, signInWithWallet, signOutSession, signText, writeToken } from '@/lib/session';
+import { useWalletGuard } from '@/lib/walletGuard';
 
 interface Notice { actionId: string; rating: string | null; publishAfter: string | null; message: string }
 interface Current {
@@ -142,6 +143,8 @@ export default function ClaimFlow() {
     setMessage('');
     await signOutSession(tok);
   }
+
+  useWalletGuard(!!token, () => { signOut(); setMessage('Your wallet changed, so you were signed out. Sign in again.'); });
 
   const onForm = (path: string, fields: string[], done: string) => (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiCall, errorText, readToken, signInWithWallet, signOutSession, writeToken } from '@/lib/session';
+import { useWalletGuard } from '@/lib/walletGuard';
 import { ApplicationsPanel, DraftsPanel, InfluencersPanel, TakedownPanel, TipsPanel } from './AnalystPanels';
 import { CommitteePanel } from './CommitteePanel';
 import { Ctx, panel } from './shared';
@@ -62,6 +63,8 @@ export default function StaffConsole() {
     setQueueCount(null);
     await signOutSession(tok);
   }
+
+  useWalletGuard(!!token, () => { signOut(); setMessage('Your wallet changed, so you were signed out. Sign in again.'); });
 
   /** One API caller for every panel: it shows failures, and the success text when a write passes one. */
   const call = useCallback<Ctx['call']>(async (path, body, method, done) => {

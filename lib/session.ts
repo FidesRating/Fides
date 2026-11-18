@@ -1,6 +1,7 @@
 // Browser helpers shared by the claim page and the Desk: API calls with the wallet session, and EVM wallet sign-in.
 export const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api/v1`;
 const TOKEN_KEY = 'fides_session';
+const WALLET_KEY = 'fides_session_wallet';
 
 /** Any injected EVM wallet (EIP-1193), for example MetaMask. */
 interface EvmProvider {
@@ -13,7 +14,18 @@ export const readToken = () => {
   try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; }
 };
 export const writeToken = (t: string | null) => {
-  try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
+  try {
+    if (t) sessionStorage.setItem(TOKEN_KEY, t);
+    else { sessionStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(WALLET_KEY); }
+  } catch { /* storage blocked */ }
+};
+
+/** The wallet address the session was signed in with. The wallet guard compares it with the wallet's current account. */
+export const readSessionWallet = () => {
+  try { return sessionStorage.getItem(WALLET_KEY); } catch { return null; }
+};
+const writeSessionWallet = (address: string) => {
+  try { sessionStorage.setItem(WALLET_KEY, address.toLowerCase()); } catch { /* storage blocked */ }
 };
 
 export async function apiCall(path: string, token: string | null, body?: unknown, method?: string): Promise<ApiResult> {
@@ -73,6 +85,7 @@ export async function signInWithWallet(): Promise<{ token: string } | { error: s
     const v = await apiCall('/auth/verify', null, { walletAddress, nonce: n.json.nonce, signature });
     if (!v.ok) return { error: errorText(v) };
     writeToken(v.json.token);
+    writeSessionWallet(walletAddress);
     return { token: v.json.token };
   } catch (e) {
     // 4001 is the EIP-1193 code for a request the user rejected. Anything else is a real problem, such as a blocked API call.
