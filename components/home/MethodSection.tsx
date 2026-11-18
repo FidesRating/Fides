@@ -19,7 +19,7 @@ export default function MethodSection() {
           <caption className="eyebrow" style={{ display: 'table-caption', textAlign: 'left', paddingBottom: '8px' }}>AUTOMATIC RULES · THE COMMITTEE CANNOT OVERRIDE</caption>
           <thead><tr><th scope="col">Rule</th><th scope="col">Trigger</th><th scope="col">Result</th></tr></thead>
           <tbody>
-            <tr><td>Not Rated</td><td>Fewer than 20 calls old enough to measure (≥ 30 days)</td><td className="res">NR, no public score</td></tr>
+            <tr><td>Not Rated</td><td>Fewer than 15 calls old enough to measure (≥ 30 days)</td><td className="res">NR, no public score</td></tr>
             <tr><td>Default on trust</td><td>One call: proven paid promotion, undisclosed, and a verified wallet sold ≥ 50% of that token within 7 days</td><td className="res">D, whatever the score</td></tr>
             <tr><td>Rug cap</td><td>Promoted a proven rug in the last 12 months and never withdrew the call</td><td className="res">CCC+ at most</td></tr>
             <tr><td>Transparency cap</td><td>No verified wallet</td><td className="res">A at most</td></tr>

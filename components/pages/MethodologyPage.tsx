@@ -52,7 +52,7 @@ export default function MethodologyPage() {
             <table className="tbl">
               <thead><tr><th scope="col">Rule</th><th scope="col">Trigger</th><th scope="col">Result</th></tr></thead>
               <tbody>
-                <tr><td>Not Rated</td><td className="wrap">Fewer than 20 calls old enough to measure (≥ 30 days)</td><td className="res">NR, no public score</td></tr>
+                <tr><td>Not Rated</td><td className="wrap">Fewer than 15 calls old enough to measure (≥ 30 days)</td><td className="res">NR, no public score</td></tr>
                 <tr><td>Default on trust</td><td className="wrap">One call: proven paid promotion, undisclosed, and a verified wallet sold ≥ 50% of that token within 7 days</td><td className="res">D, whatever the score</td></tr>
                 <tr><td>Rug cap</td><td className="wrap">Promoted a proven rug in the last 12 months and never withdrew the call</td><td className="res">CCC+ at most</td></tr>
                 <tr><td>Transparency cap</td><td className="wrap">No verified wallet. The highest ratings need a wallet that can be checked.</td><td className="res">A at most</td></tr>
@@ -102,7 +102,7 @@ export default function MethodologyPage() {
           <div className="step"><span className="n">06</span><b>Surveillance</b><p>New data flows back into the scorecard; review every 6 months.</p><span className="who">ANALYST</span></div>
         </div>
         <div className="branches">
-          <div><b>NOT RATED</b>Fewer than 20 measurable calls at stage 2: the account gets NR and no public score.</div>
+          <div><b>NOT RATED</b>Fewer than 15 measurable calls at stage 2: the account gets NR and no public score.</div>
           <div><b>APPEAL</b>Claimed accounts only, once per rating action, within 14 days. Decided under the same committee rules.</div>
           <div><b>TAKEDOWN</b>Accounts that do not meet the coverage rules are removed from every public page. <Link href="/ethics" style={{ color: 'var(--brass)' }}>Ethics</Link></div>
         </div>

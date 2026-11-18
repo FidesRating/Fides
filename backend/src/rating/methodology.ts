@@ -44,7 +44,7 @@ export const PILLARS = [
 export type PillarKey = (typeof PILLARS)[number]['key'];
 
 export const RULES = {
-  minMeasurableCalls: 20,
+  minMeasurableCalls: 15,
   measureAfterDays: 30,
   dumpSoldPct: 0.5,
   dumpWindowDays: 7,
