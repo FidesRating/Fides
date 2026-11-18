@@ -24,6 +24,7 @@ export default function InfluencerDetail({ ctx, id, isAdmin, onChanged, onClose 
   const [d, setD] = useState<Detail | null>(null);
   const [editCall, setEditCall] = useState<string | null>(null);
   const [snapFor, setSnapFor] = useState<string | null>(null);
+  const [confirmWallet, setConfirmWallet] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const r = await ctx.call(`/admin/influencers/${id}`);
@@ -152,7 +153,17 @@ export default function InfluencerDetail({ ctx, id, isAdmin, onChanged, onClose 
                 {d.wallets.map((w) => (
                   <tr key={w.id}>
                     <td>{w.chainKey}</td><td>{shorten(w.address, 22)}</td><td>{pretty(w.method)}</td><td>{w.sourceUrl ? <a href={w.sourceUrl} target="_blank" rel="noreferrer">post</a> : '-'}</td>
-                    <td>{isAdmin && <button className="btn" disabled={ctx.busy} onClick={() => { if (window.confirm('Remove this wallet? The owner can then save the right one. A wallet used in call checks cannot be removed.')) act(`/admin/influencers/${id}/wallets/${w.id}/remove`, {}, 'POST', 'Wallet removed.'); }}>Remove</button>}</td>
+                    <td>
+                      {isAdmin && (confirmWallet === w.id
+                        ? (
+                          <span style={row}>
+                            <span className="note">Remove this wallet? The owner can then save the right one. A wallet used in call checks cannot be removed.</span>
+                            <button className="btn" disabled={ctx.busy} onClick={async () => { setConfirmWallet(null); await act(`/admin/influencers/${id}/wallets/${w.id}/remove`, {}, 'POST', 'Wallet removed.'); }}>Yes, remove</button>
+                            <button className="btn" disabled={ctx.busy} onClick={() => setConfirmWallet(null)}>Keep</button>
+                          </span>
+                        )
+                        : <button className="btn" disabled={ctx.busy} onClick={() => setConfirmWallet(w.id)}>Remove</button>)}
+                    </td>
                   </tr>
                 ))}
               </Table>

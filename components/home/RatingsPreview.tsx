@@ -7,7 +7,6 @@ export default function RatingsPreview({ ratings }: { ratings: RatingListItem[] 
     <section className="box" aria-labelledby="h-list">
       <div className="act-head">
         <div className="l">
-          <span className="idx">RATINGS</span>
           <h2 id="h-list">Latest changes on <em>the scale.</em></h2>
           
         </div>

@@ -27,7 +27,6 @@ function Head() {
   return (
     <div className="sec-head">
       <div className="l">
-        <span className="idx">THE REPORT</span>
         <span className="eyebrow">THE REPORT · THE RATING</span>
         <h2 id="h-rating">One letter. Four pillars. <em>One committee.</em></h2>
       </div>

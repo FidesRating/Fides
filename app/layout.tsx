@@ -12,13 +12,16 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-plex-mono', display: 'swap' });
 
 const DESCRIPTION =
-  'Independent AAA–D credibility ratings for crypto influencers, built from public calls, disclosures, and wallets they declared themselves.';
+  'Independent AAA to D credibility ratings for crypto influencers, built from public calls, disclosures, and wallets they declared themselves.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
   title: { default: 'FIDES | Credibility Ratings for Crypto Influencers', template: '%s | FIDES' },
   description: DESCRIPTION,
-  openGraph: { title: 'FIDES: Rated Before You Trust', description: DESCRIPTION, siteName: 'FIDES', type: 'website' },
+  // './' resolves to the address of the page being rendered, so every page points to its own production URL.
+  alternates: { canonical: './' },
+  applicationName: 'FIDES',
+  openGraph: { title: 'FIDES: Rated Before You Trust', description: DESCRIPTION, siteName: 'FIDES', type: 'website', url: './' },
   twitter: { card: 'summary_large_image', site: '@FIDESRatings', title: 'FIDES: Rated Before You Trust', description: DESCRIPTION },
 };
 

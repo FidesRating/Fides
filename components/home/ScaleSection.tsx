@@ -7,7 +7,6 @@ export default function ScaleSection() {
     <section className="box" id="rankings" aria-labelledby="h-scale">
       <div className="scale-top">
         <div className="copy">
-          <span className="idx">THE SCALE</span>
           <span className="eyebrow"><i className="dot"></i>THE SCALE · VERSION I</span>
           <h2 id="h-scale">Trusted grade, <em>or speculative.</em></h2>
           <p className="sub">A rating is one letter, but it carries four pillars of evidence and a committee decision behind it.</p>

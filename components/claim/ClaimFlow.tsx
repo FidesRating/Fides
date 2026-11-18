@@ -160,7 +160,7 @@ export default function ClaimFlow() {
         <>
           <h2>1. Sign in with a wallet</h2>
           <p>A signature only. No transaction, no fee.</p>
-          <div className="btns"><button className="btn primary" disabled={busy} onClick={signIn}>Connect wallet</button></div>
+          <div className="btns"><button className="btn primary" disabled={busy} onClick={signIn}>{busy ? "Waiting for your wallet..." : "Connect wallet"}</button></div>
         </>
       )}
 

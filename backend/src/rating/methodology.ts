@@ -1,5 +1,5 @@
 /**
- * FIDES Methodology v1.0 — single source of truth for the scale, pillars, automatic rules and the committee.
+ * FIDES Methodology v1.0: single source of truth for the scale, pillars, automatic rules and the committee.
  * The scale is modelled on the letter scales used by credit rating agencies (AAA–D), with Outlook and Rating Watch.
  */
 export const METHODOLOGY_VERSION = '1.0';

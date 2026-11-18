@@ -8,9 +8,11 @@
 
 *Every call has a credit history.*
 
-[![Scale](https://img.shields.io/badge/Scale-AAA%20→%20D%20·%20Outlook%20·%20Watch-2F6B4F?style=flat-square&labelColor=2C2F35)](#-the-fides-rating-rubric)
-[![Runtime](https://img.shields.io/badge/Runtime-Next.js%20·%20NestJS%20·%20TypeScript-E9E4D6?style=flat-square&labelColor=2C2F35)](#-tech-stack)
-[![Decision](https://img.shields.io/badge/Decision-Human%20Rating%20Committee-C98C10?style=flat-square&labelColor=2C2F35)](#-the-fides-rating-rubric)
+[fidesratings.tech](https://fidesratings.tech) · [@FIDESRatings on X](https://x.com/FIDESRatings)
+
+[![Scale](https://img.shields.io/badge/Scale-AAA%20→%20D%20·%20Outlook%20·%20Watch-2F6B4F?style=flat-square&labelColor=2C2F35)](#the-fides-rating-rubric)
+[![Runtime](https://img.shields.io/badge/Runtime-Next.js%20·%20NestJS%20·%20TypeScript-E9E4D6?style=flat-square&labelColor=2C2F35)](#tech-stack)
+[![Decision](https://img.shields.io/badge/Decision-Human%20Rating%20Committee-C98C10?style=flat-square&labelColor=2C2F35)](#the-fides-rating-rubric)
 [![GitHub](https://img.shields.io/badge/GitHub-FidesRating/Fides-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/FidesRating/Fides)
 
 </div>
@@ -25,7 +27,7 @@ FIDES ratings are opinions based on public data and a published methodology. The
 
 ---
 
-## 🏛️ Why FIDES
+## Why FIDES
 
 Followers act on calls from accounts they cannot check. Follower counts and engagement are easy to buy, and paid promotions are often not disclosed.
 
@@ -33,13 +35,13 @@ FIDES replaces reputation by volume with a rating that can be checked and answer
 
 * **Public Data Only:** Posts the account itself published, token prices at the time of each call, and wallets the account declared in public or proved with a signature. No private data, no guessed wallets, no wallet clustering.
 * **Scorecard, Then Committee:** A server-side scorecard turns four pillars into a 0 – 100 score. A human Rating Committee decides the final rating and may move at most one notch from the scorecard, with a published reason.
-* **Right of Reply:** Every rating action is notified to the rated account 48 hours before publication. Claimed accounts can reply on the rating page and appeal once per action within 14 days.
+* **Right of Reply:** Every rating action is notified to the rated account 48 hours before publication. Claimed accounts can reply on the rating page and appeal once per action within 14 days. Before launch only, the owner can set `PRELAUNCH_MODE=true` on the API to publish without the notice period; removing the variable restores the 48 hour rule.
 * **Evidence You Can Inspect:** Every call and every paid promotion keeps its source link, capture time, content hash and the analyst who captured it.
 * **Access Is Not Influence:** Holding the $FIDES token opens the FIDES Desk (full data, watchlist, API, tips). It never changes a rating, a score or a committee decision.
 
 ---
 
-## 📐 Architecture & Pipeline
+## Architecture & Pipeline
 
 FIDES follows the process of a rating agency: analysts prepare the scorecard, a committee decides, the rated account is told before publication, and the rating is monitored afterwards.
 
@@ -67,7 +69,7 @@ FIDES follows the process of a rating agency: analysts prepare the scorecard, a 
 
 ---
 
-## ⚖️ The FIDES Rating Rubric
+## The FIDES Rating Rubric
 
 Accounts are scored on four pillars (0 – 100 each). The weights add up to 100%.
 
@@ -88,21 +90,21 @@ total = 0.35 × Accuracy + 0.25 × Disclosure + 0.25 × Wallet Alignment + 0.15 
 AAA  AA+ AA AA−  A+ A A−  BBB+ BBB BBB−  ──►  Trusted grade
 BB+ BB BB−  B+ B B−  CCC+ CCC CCC−  CC  C  ──►  Speculative grade
 D                                          ──►  Default on trust
-NR                                         ──►  Not Rated (fewer than 20 measurable calls)
+NR                                         ──►  Not Rated (fewer than 15 measurable calls)
 ```
 
 ### Automatic Rules (the committee cannot change them)
 
 | Rule | Trigger | Result |
 |---|---|---|
-| **Not Rated** | Fewer than 20 calls old enough to measure (30 days) | NR, no public score |
+| **Not Rated** | Fewer than 15 calls old enough to measure (30 days) | NR, no public score |
 | **Default on trust** | One call with a proven undisclosed paid promotion and a verified wallet selling at least 50% within 7 days | D, whatever the score |
 | **Rug cap** | Promoted a proven rug in the last 12 months and never withdrew the call | CCC+ at most |
 | **Transparency cap** | No verified wallet | A at most |
 
 ---
 
-## 🔍 Data & Evidence Rules
+## Data & Evidence Rules
 
 | Used | Never used |
 |---|---|
@@ -115,7 +117,7 @@ Only public accounts with at least **10,000 followers** that regularly recommend
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 ├── app/                # Next.js App Router pages (SSR / ISR) and metadata
@@ -140,7 +142,7 @@ Only public accounts with at least **10,000 followers** that regularly recommend
 
 ---
 
-## 💻 Tech Stack
+## Tech Stack
 
 ### Frontend
 - **Framework:** Next.js 15 (App Router), React 19, TypeScript
@@ -154,9 +156,14 @@ Only public accounts with at least **10,000 followers** that regularly recommend
 - **Async Queue:** Redis + BullMQ
 - **Auth:** EVM wallet sessions (personal_sign) for members and staff; staff roles come from the `STAFF_WALLETS` allowlist
 
+### Hosting
+- **Frontend:** Vercel, at [fidesratings.tech](https://fidesratings.tech)
+- **API and job worker:** Railway (one service, with Redis)
+- **Database:** Supabase PostgreSQL
+
 ---
 
-## ⚙️ Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js (v20+)
@@ -205,20 +212,27 @@ The seed creates a **fictional** account (`@lunar_alpha`, scorecard 66 → BBB+,
 
 ---
 
-## 🛡️ Rating Badges
+## Rating Badges
 
-The public API serves a small SVG badge for each rated account. It is neutral when the account is not rated or was removed.
+The public API serves a small SVG badge for each rated account, at `/api/v1/badge/<handle>.svg`. It is neutral when the account is not rated or was removed.
 
 ```markdown
-![FIDES rating](https://<api-host>/api/v1/badge/<handle>.svg)
+![FIDES rating](https://fides-production.up.railway.app/api/v1/badge/cryptofaibik.svg)
 ```
 
 ---
 
-## 🚧 Status
+## Status
 
 | Phase | Scope | State |
 |---|---|---|
+| 1 | Rebrand and Next.js frontend | Done |
+| 2 | Data, scorecard, public API, rating reports | Done, deployed |
+| 3 | Committee, notice, claims, replies, appeals, watch | Done, deployed. Includes the claim page (Login with X, signed wallets, replies, appeals) and the committee panel in the staff console |
+| 4 | FIDES Desk, API keys, watchlist, tips, share card, takedown form | Built and deployed (no outbound alerts, no analytics events). The holder gate stays closed until the token contract, RPC URL and threshold are set |
+| 5 | Revision, security audit, launch | In progress. Open items: token contract, holder threshold, legal review, analytics tool |
+
+---|---|---|
 | 1 | Rebrand and Next.js frontend | Done |
 | 2 | Data, scorecard, public API, rating reports | Done (local database) |
 | 3 | Committee, notice, claims, replies, appeals, watch | Backend done and tested on a local database. `/claim` page covers sign-in, Login with X, replies and appeals; adding wallets and the internal committee panel are not built |
@@ -227,6 +241,6 @@ The public API serves a small SVG badge for each rated account. It is neutral wh
 
 ---
 
-## 📄 License
+## License
 
 No license has been chosen yet. Until the project owner adds a `LICENSE` file, all rights are reserved.

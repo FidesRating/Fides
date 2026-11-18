@@ -44,7 +44,7 @@ Remote changes need the project owner's explicit approval each time. Nothing her
 - Service root directory `backend`. [railway.json](railway.json) sets the start command and the health check
   (`/api/v1/health`, which does not query the database). The API and the job worker run in one service (`ROLE=all`).
 - Variables: `NODE_ENV=production`, `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL` (reference the Redis service),
-  `CORS_ORIGINS` (explicit list), `NOTICE_HOURS` (48 or more), `STAFF_WALLETS`, `X_CLIENT_ID`, `X_CLIENT_SECRET`,
+  `CORS_ORIGINS` (explicit list), `NOTICE_HOURS` (48 or more), `PRELAUNCH_MODE` (optional, before launch only), `STAFF_WALLETS`, `X_CLIENT_ID`, `X_CLIENT_SECRET`,
   `X_REDIRECT_URI`, `TOKEN_CONTRACT`, `TOKEN_RPC_URL`, `MEMBER_MIN_BALANCE`, `IP_HASH_SALT`, and `NODE_OPTIONS=--max-old-space-size=384`.
   Production refuses to boot with an unsafe configuration (see Rules enforced in code).
 - Set the service and Redis to the region closest to the Supabase project, and set a usage limit in Railway.
@@ -90,7 +90,7 @@ job:       daily surveillance → reviewDue when the 180 day review is due, the 
 | Wallet Alignment | 25% | 100 × (1 − dump rate); no verified wallet = 50 |
 | Conduct | 15% | 100 − 150 × share of deleted calls − 20 × rugs not withdrawn |
 
-Automatic rules: fewer than 20 measurable calls → NR · undisclosed paid promotion and a dump on the same call → D ·
+Automatic rules: fewer than 15 measurable calls → NR · undisclosed paid promotion and a dump on the same call → D ·
 rug within 12 months → at most CCC+ · no verified wallet → at most A. The committee cannot change them.
 
 ## Rules enforced in code
@@ -99,12 +99,12 @@ rug within 12 months → at most CCC+ · no verified wallet → at most A. The c
 - Wallets only come from a public post by the account itself (`sourceUrl` required) or a signature. No "suspected" wallets.
 - Promotion evidence is used and shown only after it is `confirmed`.
 - A tip never changes a rating, and analysts never see who sent it.
-- A rating cannot be published before the notice period ends.
+- A rating cannot be published before the notice period ends, unless `PRELAUNCH_MODE=true` (a pre-launch switch the owner removes at launch).
 - A takedown (admin) removes the account from every public endpoint (410 Gone), including related articles.
 - Public APIs never contain committee votes, staff names, member login wallets or unconfirmed evidence.
 - The holder gate reads an ERC-20 balance on an EVM chain. It has no default token contract, RPC URL or threshold: while
   `TOKEN_CONTRACT`, `TOKEN_RPC_URL` or `MEMBER_MIN_BALANCE` is unset, nobody counts as a holder. An RPC failure never revokes access.
-- Production refuses to boot with missing `CORS_ORIGINS`, `NOTICE_HOURS` below 48, `SEED_DEMO=true` or a mock balance.
+- Production refuses to boot with missing `CORS_ORIGINS`, `NOTICE_HOURS` below 48 (allowed only while `PRELAUNCH_MODE=true`), `SEED_DEMO=true` or a mock balance.
 
 ## Endpoints (prefix `/api/v1`)
 

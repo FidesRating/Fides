@@ -103,7 +103,7 @@ export function computeScorecard(input: ScorecardInput): ScorecardResult {
   const confirmed = input.promotions.length;
   const disclosed = input.promotions.filter((p) => p.disclosed).length;
 
-  // Pillar 3: Wallet Alignment — a call counts as a dump when a wallet held the token and sold at least 50% within 7 days
+  // Pillar 3: Wallet Alignment. A call counts as a dump when a wallet held the token and sold at least 50% within 7 days
   const heldByCall = new Map<string, boolean>();
   for (const w of input.walletChecks.filter((w) => w.heldAtCall)) {
     heldByCall.set(w.callId, (heldByCall.get(w.callId) ?? false) || w.soldPct7d >= RULES.dumpSoldPct);

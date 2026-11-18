@@ -1,8 +1,10 @@
 import Link from 'next/link';
-import type { Stats } from '@/lib/api';
+import type { RatingListItem, Stats } from '@/lib/api';
+import { BAND_LABEL, OUTLOOK, formatRating } from '@/lib/format';
 import HeroScale from '@/components/HeroScale';
 
-export default function Hero({ stats }: { stats: Stats }) {
+export default function Hero({ stats, latest }: { stats: Stats; latest: RatingListItem | null }) {
+  const outlook = latest?.outlook ? OUTLOOK[latest.outlook] : null;
   return (
     <>
     <section className="hero box" aria-labelledby="h-hero">
@@ -34,6 +36,24 @@ export default function Hero({ stats }: { stats: Stats }) {
           <div className="v">AAA → D<br/>with Outlook</div>
           <div className="barcode"></div>
         </div>
+        {latest ? (
+          <Link className="glass g-report" href={`/ratings/${latest.handle}`}>
+            <i className="s1"></i><i className="s2"></i>
+            <span className="g-sample">LATEST PUBLISHED RATING</span>
+            <div className="row">
+              <div>
+                <div className="h">Rating Report</div>
+                <div className="handle">@{latest.handle}</div>
+                <div className="h" style={{ marginTop: '6px', textTransform: 'none', letterSpacing: '.02em' }}>{latest.followers.toLocaleString('en-US')} followers</div>
+              </div>
+              <div className="rbadge" aria-label={`Rating ${formatRating(latest.rating)}`}>{formatRating(latest.rating)}</div>
+            </div>
+            <div className="meta">
+              <span className="tag tr">{BAND_LABEL[latest.band]}</span>
+              {outlook && <span className={`tag${outlook.tone === 'neg' ? ' neg' : ''}`}>{outlook.arrow} Outlook {outlook.label}</span>}
+            </div>
+          </Link>
+        ) : (
         <div className="glass g-report">
           <i className="s1"></i><i className="s2"></i>
           <span className="g-sample">SAMPLE REPORT · FICTIONAL ACCOUNT</span>
@@ -51,6 +71,7 @@ export default function Hero({ stats }: { stats: Stats }) {
             <span className="tag">Unsolicited</span>
           </div>
         </div>
+        )}
       </div>
       <div className="chainstrip">
         <span className="lbl">CALLS TRACKED ACROSS</span>

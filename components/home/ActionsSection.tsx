@@ -8,7 +8,6 @@ export default function ActionsSection({ actions }: { actions: RatingAction[] })
     <section className="box" id="actions" aria-labelledby="h-actions">
       <div className="act-head">
         <div className="l">
-          <span className="idx">RATING ACTIONS</span>
           <h2 id="h-actions">Upgrades, downgrades, <em>affirmations.</em></h2>
           
         </div>

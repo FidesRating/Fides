@@ -4,7 +4,6 @@ export default function WallSection() {
     <section className="box" aria-labelledby="h-wall">
       <div className="wall">
         <div className="l">
-          <span className="idx">THE WALL</span>
           <h2 id="h-wall">Tips and ratings are <em>kept apart.</em></h2>
           <p className="sub">Holders can send evidence. Analysts check it. Only the committee changes a rating.</p>
         </div>

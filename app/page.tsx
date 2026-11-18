@@ -18,7 +18,7 @@ export default async function Home() {
   const featured = latest ? await getReport(latest.handle) : null;
   return (
     <div className="page-stack">
-      <Hero stats={stats ?? { accountsRated: 0, callsTracked: 0, ratingActions: 0, aaaRatings: 0 }} />
+      <Hero stats={stats ?? { accountsRated: 0, callsTracked: 0, ratingActions: 0, aaaRatings: 0 }} latest={latest ?? null} />
       <ScaleSection />
       <ActionsSection actions={actions ?? []} />
       <RatingsPreview ratings={ratings ?? []} />

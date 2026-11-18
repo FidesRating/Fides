@@ -92,7 +92,7 @@ export default function StaffConsole() {
           <span className="eyebrow chip" style={{ justifySelf: 'start' }}>STAFF WALLET</span>
           <h2>Sign in with a staff wallet</h2>
           <p>A signature only. No transaction, no fee. Your role comes from the owner-managed wallet list.</p>
-          <div className="btns"><button className="btn primary" disabled={busy} onClick={signIn}>Connect wallet</button></div>
+          <div className="btns"><button className="btn primary" disabled={busy} onClick={signIn}>{busy ? "Waiting for your wallet..." : "Connect wallet"}</button></div>
         </div>
       )}
 

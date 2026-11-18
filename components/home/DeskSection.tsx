@@ -5,7 +5,6 @@ export default function DeskSection() {
     <>
     <section className="box holders" id="desk" aria-labelledby="h-desk">
       <div className="l">
-        <span className="idx">FOR HOLDERS</span>
         <span className="eyebrow"><i className="dot"></i>FOR THE FIDES DESK</span>
         <h2 id="h-desk">See the evidence first. <em>Never touch the rating.</em></h2>
         <Link className="btn" href="/desk" style={{ alignSelf: 'flex-start' }}>Open the FIDES Desk ↗</Link>

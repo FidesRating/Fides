@@ -333,3 +333,54 @@ footer .brand-logo { width: 34px; }
 .no-splash .splash { display: none; }
 @keyframes splashOut { to { opacity: 0; visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) { .splash { display: none; } }
+
+/* ---------- Quality pass: flat surfaces, quieter labels, branded scrollbars, larger tap targets ---------- */
+
+/* No glass and no blur: surfaces are plain colours. */
+.top.box { background: var(--paper-3); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.bcard { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.ladder-legend { background: var(--paper-3); backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* Flat fills instead of gradients, and neutral shadows instead of coloured glow. */
+body { background: var(--paper); }
+.hero, .ph { background: var(--paper-3); }
+.box.cta { background: var(--speculative); }
+.btn.primary { background: var(--brass); box-shadow: var(--shadow-sm); }
+.btn.primary:hover { background: #86172a; box-shadow: var(--shadow-md); }
+.eyebrow.chip { box-shadow: none; }
+.bar i { background: #f0c060; }
+
+/* Less letter spacing on the small uppercase labels. */
+.eyebrow { letter-spacing: 0.1em; }
+.ticker { letter-spacing: 0.1em; }
+.brand-name small { letter-spacing: 0.12em; }
+
+/* Scrollbars follow the site palette instead of the browser default. */
+html { scrollbar-width: thin; scrollbar-color: var(--ink-faint) var(--paper-2); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--paper-2); }
+::-webkit-scrollbar-thumb { background: var(--ink-faint); border-radius: 999px; border: 2px solid var(--paper-2); }
+::-webkit-scrollbar-thumb:hover { background: var(--brass); }
+
+/* Tap targets on phones: links and controls that were shorter than about 40px. */
+@media (max-width: 760px) {
+  .crumbs a, .crumbs span { display: inline-flex; align-items: center; min-height: 40px; }
+  .rl-acc a, .tbl td a { display: inline-flex; align-items: center; min-height: 40px; }
+  .rl-tools a, .rl-tools button, .rl-tools select, .rl-field input { min-height: 40px; }
+  .rl-tools label { min-height: 40px; display: inline-flex; align-items: center; }
+}
+
+/* ---------- Typography: sans for interface text, mono only for data and code ---------- */
+.nav a, .claim, .btn, .crumbs, .rl-chips button, .rl-field, .rl-count, .rl-foot, .note, .legal, .tag, .rl-band, .rl-act,
+.stat span, th, .form label, .eyebrow, .ticker, .brand-name small, .chainstrip .lbl, .chainstrip li, .strip, footer .fc h5,
+.stats-note, .sample-note, .pill, .win-bar { font-family: var(--sans); }
+.btn { text-transform: none; letter-spacing: 0.01em; font-size: 14px; }
+.nav a, .claim { font-size: 13px; letter-spacing: 0.01em; }
+.eyebrow, .ticker, .strip { letter-spacing: 0.06em; font-size: 12px; }
+.stat span, th, .form label, .rl-field { letter-spacing: 0.04em; font-size: 11.5px; }
+.crumbs, .note, .legal, .rl-foot, .rl-count, .stats-note { letter-spacing: 0; font-size: 12.5px; }
+.tag, .rl-band, .rl-act { letter-spacing: 0; font-size: 12px; }
+.brand-name small { letter-spacing: 0.06em; }
+.chainstrip .lbl { letter-spacing: 0.06em; font-size: 12px; }
+.chainstrip li { font-size: 14px; }
+.sec-head p, .hero-copy .sub { line-height: 1.6; }
