@@ -26,6 +26,17 @@ test('publish gate: only actions in the notice period can be published', () => {
   }
 });
 
+test('pre-launch mode: publishing skips the proof and the waiting time, but still needs the notice stage', () => {
+  const unclaimed = { status: 'notice', noticeChannel: 'x_mention' as const, noticeProofUrl: null, publishAfter: null };
+  assert.match(publishBlocker(unclaimed, now)!, /record the X mention/);
+  assert.equal(publishBlocker(unclaimed, now, true), null);
+  assert.equal(publishBlocker({ ...unclaimed, noticeChannel: 'profile', publishAfter: hours(40) }, now, true), null);
+  // A draft or an already published action is never publishable, even in pre-launch mode
+  for (const status of ['draft', 'committee', 'published', 'superseded']) {
+    assert.match(publishBlocker({ ...unclaimed, status }, now, true)!, /notice period/);
+  }
+});
+
 test('notice proof: accepts public X post URLs only', () => {
   assert.ok(isXStatusUrl('https://x.com/FidesRating/status/1234567890'));
   assert.ok(isXStatusUrl('https://twitter.com/FidesRating/status/1234567890'));

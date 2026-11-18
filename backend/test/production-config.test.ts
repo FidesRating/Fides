@@ -1,6 +1,6 @@
 import * as assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { assertProductionConfig } from '../src/common/production-config';
+import { assertProductionConfig, isPrelaunch } from '../src/common/production-config';
 
 const safe = { NODE_ENV: 'production', CORS_ORIGINS: 'https://fides.example', NOTICE_HOURS: '48' };
 
@@ -17,6 +17,15 @@ test('production config: refuses NOTICE_HOURS below 48', () => {
   assert.throws(() => assertProductionConfig({ ...safe, NOTICE_HOURS: '47' }), /NOTICE_HOURS/);
   assert.throws(() => assertProductionConfig({ ...safe, NOTICE_HOURS: 'abc' }), /NOTICE_HOURS/);
   assert.doesNotThrow(() => assertProductionConfig({ ...safe, NOTICE_HOURS: '72' }));
+});
+
+test('production config: pre-launch mode allows a short notice, and only while the flag is true', () => {
+  assert.doesNotThrow(() => assertProductionConfig({ ...safe, PRELAUNCH_MODE: 'true', NOTICE_HOURS: '0' }));
+  assert.throws(() => assertProductionConfig({ ...safe, PRELAUNCH_MODE: 'false', NOTICE_HOURS: '0' }), /NOTICE_HOURS/);
+  assert.throws(() => assertProductionConfig({ ...safe, NOTICE_HOURS: '0' }), /NOTICE_HOURS/);
+  assert.throws(() => assertProductionConfig({ ...safe, PRELAUNCH_MODE: 'yes' }), /PRELAUNCH_MODE/);
+  assert.equal(isPrelaunch({ PRELAUNCH_MODE: 'true' }), true);
+  assert.equal(isPrelaunch({}), false);
 });
 
 test('production config: refuses SEED_DEMO=true and the mock balance', () => {

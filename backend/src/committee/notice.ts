@@ -23,8 +23,10 @@ interface NoticeState {
  * The notice clock for a claimed account starts at finalize. For an unclaimed account it starts only
  * when staff record proof of the X mention, so publishAfter stays empty until then.
  */
-export function publishBlocker(a: NoticeState, now: Date): string | null {
+export function publishBlocker(a: NoticeState, now: Date, prelaunch = false): string | null {
   if (a.status !== 'notice') return `Only actions in the notice period can be published (action is ${a.status})`;
+  // Pre-launch only: no notice proof and no waiting time. The committee still decides and publishes.
+  if (prelaunch) return null;
   if (a.noticeChannel === 'x_mention' && !a.noticeProofUrl) return 'The notice has not been delivered: record the X mention as proof first';
   if (!a.publishAfter) return 'The notice period has not started';
   if (a.publishAfter > now) return `The rated account has until ${a.publishAfter.toISOString()} to flag factual errors`;

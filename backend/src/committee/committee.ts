@@ -12,6 +12,7 @@ import { formatActionId } from '../public/presenter';
 import { watchStart } from '../rating/watch';
 import { rejectQuorumReached } from './appeal-quorum';
 import { isXStatusUrl, publishBlocker } from './notice';
+import { isPrelaunch } from '../common/production-config';
 
 export class VoteDto {
   @IsOptional() @IsBoolean() recuse?: boolean;
@@ -165,7 +166,7 @@ export class CommitteeService {
 
   async publish(id: string) {
     const a = await this.action(id);
-    const blocker = publishBlocker(a, new Date());
+    const blocker = publishBlocker(a, new Date(), isPrelaunch());
     if (blocker) throw new BadRequestException(blocker);
     const now = new Date();
     await this.prisma.$transaction([

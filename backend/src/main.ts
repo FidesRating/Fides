@@ -2,12 +2,15 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { assertProductionConfig } from './common/production-config';
+import { assertProductionConfig, isPrelaunch } from './common/production-config';
 import { assertMethodology } from './rating/methodology';
 
 async function bootstrap() {
   assertMethodology();
   assertProductionConfig(process.env);
+  if (isPrelaunch()) {
+    new Logger('Bootstrap').warn('PRELAUNCH_MODE is on: ratings can be published without the 48 hour notice. Remove PRELAUNCH_MODE before launch.');
+  }
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1');
 
