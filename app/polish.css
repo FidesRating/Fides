@@ -56,13 +56,15 @@ body {
 .ticker-track { padding: 10px 0; }
 .top.box {
   margin-top: 16px;
-  background: rgba(251, 248, 242, 0.82);
+  background: rgba(251, 248, 242, 0.96);
   backdrop-filter: blur(14px) saturate(1.3);
   -webkit-backdrop-filter: blur(14px) saturate(1.3);
 }
+/* Stuck flush to the top (no gap), so the page never shows through above the header while scrolling. */
 @media (min-width: 1021px) {
-  .top.box { position: sticky; top: 12px; z-index: 50; }
+  .top.box { position: sticky; top: 0; z-index: 50; }
 }
+.claim .txt-short { display: none; }
 .brand { border-right: 1px solid var(--line-2); }
 .nav a { border-right: 0; position: relative; transition: color 0.2s, background 0.2s; }
 .nav a::after {
@@ -264,7 +266,13 @@ footer .fc .socials a:hover { transform: translateY(-2px); background: var(--bra
   .nav a { min-height: 40px; }
 }
 @media (max-width: 760px) {
-  .nav a { padding: 0 12px; }
+  /* Phone menu: a tidy grid, three links per row, the two icons share the last row. Every item stays visible. */
+  .nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .nav a { grid-column: span 2; justify-content: center; text-align: center; padding: 0 6px; min-height: 42px; box-shadow: inset 0 -1px 0 var(--line-2); }
+  .nav a.ic { grid-column: span 3; }
+  .nav a:nth-last-child(-n+2) { box-shadow: none; }
+  .claim .txt { display: none; }
+  .claim .txt-short { display: inline; }
   .wrap { padding: 0 12px; }
   .box { border-radius: var(--radius-md); }
   .hero-copy { padding: 32px 20px 26px; }
