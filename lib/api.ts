@@ -27,6 +27,7 @@ export interface RatingAction {
 export interface RatingListItem {
   handle: string;
   displayName: string | null;
+  avatarUrl: string | null;
   followers: number;
   participating: boolean;
   rating: string;

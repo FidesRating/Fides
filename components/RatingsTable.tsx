@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { RatingListItem } from '@/lib/api';
+import SmallAvatar from './SmallAvatar';
 import { ACTION_LABEL, BAND_CLASS, BAND_LABEL, OUTLOOK, formatDate, watchLabel, formatRating } from '@/lib/format';
 
 export default function RatingsTable({ items }: { items: RatingListItem[] }) {
@@ -27,8 +28,13 @@ export default function RatingsTable({ items }: { items: RatingListItem[] }) {
             return (
               <tr key={r.handle}>
                 <td className="rl-acc">
-                  <Link href={`/ratings/${r.handle}`}>@{r.handle}</Link>
-                  <small>{r.followers.toLocaleString('en-US')} followers · {r.participating ? 'Participating' : 'Unsolicited'}</small>
+                  <div className="rl-who">
+                    <SmallAvatar handle={r.handle} url={r.avatarUrl} />
+                    <div>
+                      <Link href={`/ratings/${r.handle}`}>@{r.handle}</Link>
+                      <small>{r.followers.toLocaleString('en-US')} followers · {r.participating ? 'Participating' : 'Unsolicited'}</small>
+                    </div>
+                  </div>
                 </td>
                 <td>
                   <div className="rl-rating">
