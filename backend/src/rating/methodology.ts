@@ -52,7 +52,7 @@ export const RULES = {
   rugCap: 'CCC+',
   noWalletCap: 'A',
   noDataPillarScore: 50,
-  minFollowers: 0, // TEMPORARY for testing. Restore to 10_000 (batas "tokoh publik" di dunia kripto) before launch.
+  minFollowers: 10_000, // The brief rejects accounts below 10,000 followers. Keep it equal to MIN_FOLLOWERS in components/staff/shared.tsx.
   minCommitteeVotes: 3,
   maxNotchesFromScorecard: 1,
   noticeHours: 48,

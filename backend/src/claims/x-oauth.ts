@@ -58,10 +58,13 @@ export class HttpXOAuth implements XOAuthAdapter {
       ? ((await meRes.json()) as { data?: { username?: string; name?: string; profile_image_url?: string; public_metrics?: { followers_count?: number } } }).data
       : undefined;
     if (!data?.username) throw new UnauthorizedException('Could not read your X account. Try again.');
+    // Fail closed: a missing count must not be stored as 0 followers, or a real account is rejected with a wrong reason.
+    const followers = data.public_metrics?.followers_count;
+    if (typeof followers !== 'number') throw new UnauthorizedException('X did not return your follower count. Try again later.');
     return {
       username: data.username.toLowerCase(),
       name: data.name || data.username,
-      followers: data.public_metrics?.followers_count ?? 0,
+      followers,
       avatarUrl: data.profile_image_url ?? null,
     };
   }

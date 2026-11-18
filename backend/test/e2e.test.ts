@@ -369,7 +369,7 @@ describe('profile claim through Login with X', () => {
     xServer = createServer((req, res) => {
       res.setHeader('content-type', 'application/json');
       if (req.url === '/2/oauth2/token') res.end(JSON.stringify({ access_token: 'mock-token' }));
-      else if (req.url === '/2/users/me') res.end(JSON.stringify({ data: { username: xUsername } }));
+      else if (req.url === '/2/users/me') res.end(JSON.stringify({ data: { username: xUsername, public_metrics: { followers_count: 30000 } } }));
       else { res.statusCode = 404; res.end('{}'); }
     });
     await new Promise<void>((resolve) => xServer.listen(0, '127.0.0.1', resolve));
