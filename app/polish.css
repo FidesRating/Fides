@@ -384,3 +384,12 @@ html { scrollbar-width: thin; scrollbar-color: var(--ink-faint) var(--paper-2); 
 .chainstrip .lbl { letter-spacing: 0.06em; font-size: 12px; }
 .chainstrip li { font-size: 14px; }
 .sec-head p, .hero-copy .sub { line-height: 1.6; }
+
+/* Tap targets on every screen size (footer excluded): at least 36px tall for crumbs, filters, table links and selects. */
+.crumbs a { display: inline-flex; align-items: center; min-height: 36px; }
+.rl-chips a, .rl-chips button { min-height: 36px; }
+.rl-field select, .rl-field input[type="text"], .rl-field input:not([type]) { min-height: 36px; }
+.rl-check { min-height: 36px; }
+.rl-check input { width: 20px; height: 20px; }
+.rl-acc a, .tbl td a { display: inline-flex; align-items: center; min-height: 36px; }
+.mono-link, a.mono { display: inline-flex; align-items: center; min-height: 36px; }
