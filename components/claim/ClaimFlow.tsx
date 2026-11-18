@@ -242,13 +242,17 @@ export default function ClaimFlow() {
             {profile.wallets.length > 0
               ? <ul>{profile.wallets.map((w) => <li key={`${w.chain}:${w.address}`}>{w.chain}: {w.address}</li>)}</ul>
               : <p>No wallet saved yet.</p>}
-            <form className="form" onSubmit={saveWallet}>
-              <label className="full">Chain of the wallet
-                <select name="chain" defaultValue="robinhood">{EVM_CHAINS.map((c) => <option key={c} value={c}>{c}</option>)}</select>
-              </label>
-              <p className="full">Your wallet asks you to sign: this wallet belongs to @{profile.handle}, FIDES may show it publicly and use its history in your rating. No transaction, no fee.</p>
-              <div className="full"><button className="btn" disabled={busy}>Save connected wallet</button></div>
-            </form>
+            {profile.wallets.some((w) => w.method === 'signature')
+              ? <p>Your wallet is saved and cannot be changed here. Contact FIDES staff if it must be changed.</p>
+              : (
+                <form className="form" onSubmit={saveWallet}>
+                  <label className="full">Chain of the wallet
+                    <select name="chain" defaultValue="robinhood">{EVM_CHAINS.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+                  </label>
+                  <p className="full">Your wallet asks you to sign: this wallet belongs to @{profile.handle}, FIDES may show it publicly and use its history in your rating. You can save one wallet, and it cannot be changed afterwards. No transaction, no fee.</p>
+                  <div className="full"><button className="btn" disabled={busy}>Save connected wallet</button></div>
+                </form>
+              )}
           </div>
 
           {profile.notices.map((n) => (

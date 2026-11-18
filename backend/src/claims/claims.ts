@@ -182,8 +182,15 @@ export class ClaimsService {
 
   // ─────────────────────────── Wallets ─────────────────────────
 
+  /** The owner saves a wallet once. A wrong one is removed by an admin, then the owner saves again. */
+  private async assertNoOwnerWallet(influencerId: string) {
+    const saved = await this.prisma.wallet.count({ where: { influencerId, method: 'signature' } });
+    if (saved > 0) throw new ConflictException('A wallet is already saved. Ask FIDES staff if it must be changed.');
+  }
+
   async walletNonce(member: Member, dto: WalletNonceDto) {
     const inf = await this.myInfluencer(member);
+    await this.assertNoOwnerWallet(inf.id);
     const chain = dto.chain.toLowerCase();
     const cfg = CHAIN_REGISTRY[chain];
     if (!cfg || !['evm_hex', 'solana_base58'].includes(cfg.addressFormat)) throw new BadRequestException('Wallet proofs support EVM chains and Solana');
@@ -207,6 +214,7 @@ export class ClaimsService {
     const inf = await this.myInfluencer(member);
     const row = await consumeNonce(this.prisma, dto.address, dto.nonce, dto.signature, 'influencer_wallet');
     if (row.subjectId !== inf.id) throw new ForbiddenException('This signing request belongs to another account');
+    await this.assertNoOwnerWallet(inf.id);
     return this.prisma.wallet.upsert({
       where: { influencerId_chainKey_address: { influencerId: inf.id, chainKey: row.chainKey!, address: row.walletAddress } },
       create: { influencerId: inf.id, chainKey: row.chainKey!, address: row.walletAddress, method: 'signature' },
