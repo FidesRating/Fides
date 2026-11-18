@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { CallRow, Report } from '@/lib/api';
-import { ACTION_CLASS, ACTION_LABEL, BAND_CLASS, BAND_LABEL, OUTLOOK, formatDate, formatRating, watchLabel } from '@/lib/format';
+import { ACTION_CLASS, ACTION_LABEL, BAND_CLASS, BAND_LABEL, OUTLOOK, formatDate, formatRating, safeAvatarUrl, watchLabel } from '@/lib/format';
 
 const pct = (n: number | null) =>
   n === null ? <span className="rl-dash">n/a</span> : <span className={n >= 0 ? 'pos' : 'neg'}>{`${n >= 0 ? '+' : ''}${(n * 100).toFixed(1)}%`}</span>;
@@ -47,6 +47,7 @@ export default function ReportView({ r }: { r: Report }) {
   const weakest = pillars?.find((p) => p.score === low) ?? null;
   const caps = rating.scorecard.appliedCaps;
   const rated = rating.rating ?? 'NR';
+  const avatar = safeAvatarUrl(account.avatarUrl);
 
   return (
     <div className="page-stack">
@@ -57,7 +58,14 @@ export default function ReportView({ r }: { r: Report }) {
       <section className="box">
         <div className="rep-head">
           <div className="rep-id">
-            <div className="avatar" aria-hidden="true">{account.handle[0].toUpperCase()}</div>
+            <div className="avatar" aria-hidden="true">
+              {account.handle[0].toUpperCase()}
+              {avatar && (
+                // The letter stays underneath: if the picture does not load, the letter is what shows.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatar} alt="" width={72} height={72} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+              )}
+            </div>
             <div>
               <span className="eyebrow">RATING REPORT</span>
               <h1 className="hd" style={{ fontFamily: 'var(--mono)', fontSize: 'clamp(22px,3vw,30px)', letterSpacing: 0, marginTop: 6 }}>@{account.handle}</h1>

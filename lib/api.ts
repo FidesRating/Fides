@@ -149,6 +149,7 @@ export interface Report {
   account: {
     handle: string;
     displayName: string | null;
+    avatarUrl: string | null;
     followers: number;
     accounts: { platform: string; handle: string; followers: number }[];
     coverage: 'Participating' | 'Unsolicited';

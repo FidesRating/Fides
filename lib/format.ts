@@ -43,5 +43,19 @@ export const ACTION_CLASS: Record<string, string> = {
   withdraw: 'aff',
 };
 
+/**
+ * The profile picture is shown only when it comes from X's image host. A staff-entered link to any other site is ignored,
+ * so a public page never loads an arbitrary third-party image.
+ */
+export function safeAvatarUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    return u.protocol === 'https:' && u.hostname === 'pbs.twimg.com' && u.pathname.startsWith('/profile_images/') ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
