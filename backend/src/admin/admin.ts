@@ -468,7 +468,7 @@ export class AdminService {
     const inf = await this.prisma.influencer.findUnique({
       where: { id },
       select: {
-        id: true, handle: true, displayName: true, status: true, participating: true,
+        id: true, handle: true, displayName: true, avatarUrl: true, status: true, participating: true,
         accounts: { select: { id: true, platform: true, handle: true, followers: true, claimedAt: true, claimMemberId: true } },
         wallets: { select: { id: true, chainKey: true, address: true, method: true, sourceUrl: true } },
         promotions: {

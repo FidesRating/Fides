@@ -13,7 +13,7 @@ interface CallRow {
   walletChecks: { walletId: string; heldAtCall: boolean; soldPct7d: string }[];
 }
 interface Detail {
-  id: string; handle: string; displayName: string | null; status: string; participating: boolean;
+  id: string; handle: string; displayName: string | null; avatarUrl: string | null; status: string; participating: boolean;
   accounts: Account[]; wallets: WalletRow[]; promotions: PromotionRow[]; calls: CallRow[];
 }
 
@@ -65,7 +65,7 @@ export default function InfluencerDetail({ ctx, id, isAdmin, onChanged, onClose 
           <Section title="Profile">
             <form className="form" onSubmit={async (e) => { e.preventDefault(); const f = e.currentTarget; await act(`/admin/influencers/${id}`, { displayName: optVal(f, 'displayName'), avatarUrl: optVal(f, 'avatarUrl') }, 'PATCH', 'Profile updated.'); }}>
               <label>Display name<input name="displayName" defaultValue={d.displayName ?? ''} maxLength={60} /></label>
-              <label>Avatar URL (optional)<input name="avatarUrl" type="url" placeholder="https://" /></label>
+              <label>Avatar URL (optional)<input name="avatarUrl" type="url" placeholder="https://" defaultValue={d.avatarUrl ?? ''} /></label>
               <div className="full"><button className="btn" disabled={ctx.busy}>Save profile</button></div>
             </form>
           </Section>
