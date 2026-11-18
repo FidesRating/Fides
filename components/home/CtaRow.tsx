@@ -1,6 +1,10 @@
 import Link from 'next/link';
+import type { Band, RatingAction } from '@/lib/api';
+import { ACTION_LABEL, BAND_LABEL, OUTLOOK, formatDate, formatRating } from '@/lib/format';
 
-export default function CtaRow() {
+/** The share card shows the latest published rating action. Without one it shows a labelled sample. */
+export default function CtaRow({ action, band }: { action: RatingAction | null; band: Band | null }) {
+  const outlook = action?.outlook ? OUTLOOK[action.outlook] : null;
   return (
     <>
     <div className="cta-row" id="claim">
@@ -13,14 +17,30 @@ export default function CtaRow() {
       <section className="box share win" aria-label="Share card preview">
         <div className="win-bar"><span>SHARE_CARD · 1200×675</span><span className="ctl" aria-hidden="true">▁ ▢ ✕</span></div>
         <div className="share-card-wrap">
-          <div className="share-card">
-            <div className="top-s"><span>FIDES · RATING ACTION</span><span>NEW</span></div>
-            <div className="mid">
-              <span className="r">BBB</span>
-              <div className="d">@lunar_alpha<br/>Trusted grade<br/><b>Outlook Negative</b><br/>3 Nov 2026</div>
+          {action ? (
+            <div className="share-card">
+              <div className="top-s"><span>FIDES · RATING ACTION</span><span>{ACTION_LABEL[action.type] ?? action.type.toUpperCase()}</span></div>
+              <div className="mid">
+                <span className="r">{formatRating(action.rating)}</span>
+                <div className="d">
+                  @{action.handle}<br/>
+                  {band ? <>{BAND_LABEL[band]}<br/></> : null}
+                  {outlook ? <><b>Outlook {outlook.label}</b><br/></> : null}
+                  {formatDate(action.publishedAt)}
+                </div>
+              </div>
+              <div className="bot"><span>fides · opinion, not advice</span><span>{action.actionId}</span></div>
             </div>
-            <div className="bot"><span>fides · opinion, not advice</span><span>sample</span></div>
-          </div>
+          ) : (
+            <div className="share-card">
+              <div className="top-s"><span>FIDES · RATING ACTION</span><span>NEW</span></div>
+              <div className="mid">
+                <span className="r">BBB</span>
+                <div className="d">@lunar_alpha<br/>Trusted grade<br/><b>Outlook Negative</b><br/>3 Nov 2026</div>
+              </div>
+              <div className="bot"><span>fides · opinion, not advice</span><span>sample</span></div>
+            </div>
+          )}
         </div>
       </section>
     </div>
