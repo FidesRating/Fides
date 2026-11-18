@@ -313,6 +313,19 @@ export class AdminService {
     });
   }
 
+  /**
+   * Removes a wrongly saved wallet so the owner can save the right one. A wallet that already backs a call check is kept:
+   * deleting it would erase the evidence behind a rating.
+   */
+  async removeWallet(id: string, walletId: string) {
+    const wallet = await this.prisma.wallet.findFirst({ where: { id: walletId, influencerId: id }, select: { id: true } });
+    if (!wallet) throw new NotFoundException('Wallet not found for this account');
+    const checks = await this.prisma.callWalletCheck.count({ where: { walletId } });
+    if (checks > 0) throw new ConflictException('This wallet is used in call checks and cannot be removed');
+    await this.prisma.wallet.delete({ where: { id: walletId } });
+    return { success: true };
+  }
+
   async setWalletChecks(callId: string, dto: SetWalletChecksDto) {
     const call = await this.prisma.call.findUnique({ where: { id: callId } });
     if (!call) throw new NotFoundException('Call not found');
@@ -586,6 +599,12 @@ export class AdminController {
   @Post('influencers/:id/wallets')
   addWallet(@Param('id') id: string, @Body() dto: AddWalletDto) {
     return this.admin.addWallet(id, dto);
+  }
+
+  @Post('influencers/:id/wallets/:walletId/remove')
+  @StaffRoles('admin')
+  removeWallet(@Param('id') id: string, @Param('walletId') walletId: string) {
+    return this.admin.removeWallet(id, walletId);
   }
 
   @Post('influencers/:id/promotions')

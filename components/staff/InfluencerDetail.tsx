@@ -148,9 +148,12 @@ export default function InfluencerDetail({ ctx, id, isAdmin, onChanged, onClose 
 
           <Section title={`Wallets (${d.wallets.length})`} hint="Only wallets the account named itself in a public post. No guessed or clustered wallets.">
             {d.wallets.length > 0 && (
-              <Table head={['Chain', 'Address', 'Method', 'Source']}>
+              <Table head={['Chain', 'Address', 'Method', 'Source', '']}>
                 {d.wallets.map((w) => (
-                  <tr key={w.id}><td>{w.chainKey}</td><td>{shorten(w.address, 22)}</td><td>{pretty(w.method)}</td><td>{w.sourceUrl ? <a href={w.sourceUrl} target="_blank" rel="noreferrer">post</a> : '-'}</td></tr>
+                  <tr key={w.id}>
+                    <td>{w.chainKey}</td><td>{shorten(w.address, 22)}</td><td>{pretty(w.method)}</td><td>{w.sourceUrl ? <a href={w.sourceUrl} target="_blank" rel="noreferrer">post</a> : '-'}</td>
+                    <td>{isAdmin && <button className="btn" disabled={ctx.busy} onClick={() => { if (window.confirm('Remove this wallet? The owner can then save the right one. A wallet used in call checks cannot be removed.')) act(`/admin/influencers/${id}/wallets/${w.id}/remove`, {}, 'POST', 'Wallet removed.'); }}>Remove</button>}</td>
+                  </tr>
                 ))}
               </Table>
             )}
