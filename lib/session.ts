@@ -45,6 +45,21 @@ export async function signOutSession(token: string | null): Promise<void> {
 
 const utf8ToHex = (text: string) => '0x' + Array.from(new TextEncoder().encode(text), (b) => b.toString(16).padStart(2, '0')).join('');
 
+/** Asks the injected wallet for its first account. */
+export async function connectedAccount(): Promise<string | null> {
+  const wallet = (window as unknown as { ethereum?: EvmProvider }).ethereum;
+  if (!wallet) return null;
+  const accounts = (await wallet.request({ method: 'eth_requestAccounts' })) as string[];
+  return accounts[0] ?? null;
+}
+
+/** Signs a text with the injected wallet (a signature only, no transaction and no fee). */
+export async function signText(text: string, address: string): Promise<string> {
+  const wallet = (window as unknown as { ethereum?: EvmProvider }).ethereum;
+  if (!wallet) throw new Error('No wallet');
+  return (await wallet.request({ method: 'personal_sign', params: [utf8ToHex(text), address] })) as string;
+}
+
 /** Signs in with an EVM wallet (a signature only, no transaction and no fee). Returns the session token or a message to show. */
 export async function signInWithWallet(): Promise<{ token: string } | { error: string }> {
   try {

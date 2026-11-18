@@ -1,14 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiCall, errorText, readToken, signInWithWallet, signOutSession, writeToken } from '@/lib/session';
+import { apiCall, connectedAccount, errorText, readToken, signInWithWallet, signOutSession, signText, writeToken } from '@/lib/session';
 
 interface Notice { actionId: string; rating: string | null; publishAfter: string | null; message: string }
 interface Current {
   actionId: string; rating: string | null; reply: string | null;
   appeal: { status: string } | null; appealDeadline: string | null;
 }
-interface Profile { handle: string; participating: boolean; notices: Notice[]; current: Current | null }
+interface Profile { handle: string; participating: boolean; notices: Notice[]; current: Current | null; wallets: { chain: string; address: string; method: string }[] }
 interface Application {
   handle: string; displayName: string; followers: number; status: 'draft' | 'submitted' | 'accepted' | 'rejected';
   decisionNote: string | null; decidedAt: string | null;
@@ -91,6 +91,28 @@ export default function ClaimFlow() {
     setBusy(false);
     if (r.ok) window.location.assign(r.json.authorizeUrl);
     else setMessage(r.status === 503 ? 'Profile claims are not open yet.' : errorText(r));
+  }
+
+  /** Saves the connected wallet as a rating wallet. The owner signs the agreement text, so no transaction and no fee. */
+  async function saveWallet(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!token) return;
+    const chain = String(new FormData(e.currentTarget).get('chain') ?? '');
+    setBusy(true);
+    try {
+      const address = await connectedAccount();
+      if (!address) { setMessage('Install an EVM wallet such as MetaMask to save a wallet.'); return; }
+      const n = await call('/claim/wallets/nonce', token, { chain, address });
+      if (!n.ok) { setMessage(errorText(n)); return; }
+      const signature = await signText(n.json.message, address);
+      const v = await call('/claim/wallets/verify', token, { address, nonce: n.json.nonce, signature });
+      setMessage(v.ok ? 'Wallet saved. It is shown on your rating page.' : errorText(v));
+      if (v.ok) await loadProfile(token);
+    } catch (err) {
+      setMessage((err as { code?: number })?.code === 4001 ? 'Wallet request was cancelled.' : 'Could not save the wallet. Try again.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function submit(path: string, body: Record<string, string>, done: string) {
@@ -214,6 +236,20 @@ export default function ClaimFlow() {
         <>
           <h2>@{profile.handle} {profile.participating && <small>Participating</small>}</h2>
           <p>Claiming never raises a rating. The scorecard, caps and committee rules are the same for everyone.</p>
+
+          <div>
+            <h3>Rating wallets</h3>
+            {profile.wallets.length > 0
+              ? <ul>{profile.wallets.map((w) => <li key={`${w.chain}:${w.address}`}>{w.chain}: {w.address}</li>)}</ul>
+              : <p>No wallet saved yet.</p>}
+            <form className="form" onSubmit={saveWallet}>
+              <label className="full">Chain of the wallet
+                <select name="chain" defaultValue="robinhood">{EVM_CHAINS.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+              </label>
+              <p className="full">Your wallet asks you to sign: this wallet belongs to @{profile.handle}, FIDES may show it publicly and use its history in your rating. No transaction, no fee.</p>
+              <div className="full"><button className="btn" disabled={busy}>Save connected wallet</button></div>
+            </form>
+          </div>
 
           {profile.notices.map((n) => (
             <div key={n.actionId}>
