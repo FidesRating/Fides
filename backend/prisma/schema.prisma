@@ -510,6 +510,7 @@ model Application {
   displayName  String
   avatarUrl    String?
   followers    Int // read from X at login
+  walletChain  String? // chain of the login wallet the member agreed to show; saved as a rating wallet when the application is accepted
   status       ApplicationStatus @default(draft)
   evidenceUrls String[] // public posts that show regular token calls
   consentAt    DateTime?

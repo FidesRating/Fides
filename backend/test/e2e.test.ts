@@ -358,8 +358,8 @@ describe('profile claim through Login with X', () => {
     await prisma.memberSession.create({ data: { memberId: member.id, tokenHash: createHash('sha256').update(token).digest('hex'), expiresAt: new Date(Date.now() + 86400_000) } });
     return { member, token };
   };
-  const startClaim = async (token: string) => {
-    const r = await api('/claim/x/start', { method: 'POST', key: token, body: {} });
+  const startClaim = async (token: string, chain = 'ethereum') => {
+    const r = await api('/claim/x/start', { method: 'POST', key: token, body: { chain, consent: true } });
     return { ...r, state: r.json?.authorizeUrl ? new URL(r.json.authorizeUrl).searchParams.get('state')! : '' };
   };
 
@@ -390,7 +390,9 @@ describe('profile claim through Login with X', () => {
     delete process.env.X_REDIRECT_URI;
     const { token } = await newMember('closed');
     assert.equal((await api('/claim/x/start', { method: 'POST', body: {} })).status, 401);
-    assert.equal((await api('/claim/x/start', { method: 'POST', key: token, body: {} })).status, 503);
+    assert.equal((await api('/claim/x/start', { method: 'POST', key: token, body: { chain: 'ethereum', consent: true } })).status, 503);
+    assert.equal((await api('/claim/x/start', { method: 'POST', key: token, body: { chain: 'ethereum', consent: false } })).status, 400, 'no consent');
+    assert.equal((await api('/claim/x/start', { method: 'POST', key: token, body: { chain: 'solana', consent: true } })).status, 400, 'EVM chains only');
   });
 
   test('a state belongs to one wallet and works once; the verified X username decides the account', async () => {
@@ -416,6 +418,10 @@ describe('profile claim through Login with X', () => {
     assert.equal(done.json.handle, 'claim_acct');
     assert.equal((await prisma.influencer.findFirstOrThrow({ where: { handle: 'claim_acct' } })).participating, true);
     assert.equal((await complete(a.token, sa2.state)).status, 401, 'replay');
+    const saved = await prisma.wallet.findMany({ where: { influencer: { handle: 'claim_acct' } } });
+    assert.equal(saved.length, 1, 'the login wallet is saved on claim');
+    assert.equal(saved[0].address, a.member.walletAddress);
+    assert.equal(saved[0].chainKey, 'ethereum');
 
     const sb = await startClaim(b.token);
     assert.equal((await complete(b.token, sb.state)).status, 409, 'already claimed by another wallet');

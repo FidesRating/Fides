@@ -14,7 +14,10 @@ interface Application {
   decisionNote: string | null; decidedAt: string | null;
 }
 
-const fmt = (iso: string | null) => (iso ? new Date(iso).toUTCString() : '');
+// The login wallet is an EVM address, so only EVM chains are offered.
+const EVM_CHAINS = ['robinhood', 'ethereum', 'base', 'arbitrum', 'optimism', 'polygon', 'bnb', 'avalanche', 'berachain'];
+
+const fmt =(iso: string | null) => (iso ? new Date(iso).toUTCString() : '');
 
 export default function ClaimFlow() {
   const [token, setToken] = useState<string | null>(null);
@@ -79,10 +82,12 @@ export default function ClaimFlow() {
     setBusy(false);
   }
 
-  async function loginWithX() {
+  async function loginWithX(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     if (!token) return;
+    const data = new FormData(e.currentTarget);
     setBusy(true);
-    const r = await call('/claim/x/start', token, {});
+    const r = await call('/claim/x/start', token, { chain: String(data.get('chain') ?? ''), consent: data.get('walletConsent') === 'on' });
     setBusy(false);
     if (r.ok) window.location.assign(r.json.authorizeUrl);
     else setMessage(r.status === 503 ? 'Profile claims are not open yet.' : errorText(r));
@@ -142,10 +147,19 @@ export default function ClaimFlow() {
           {application?.status === 'rejected' && (
             <p role="status">Your last application for @{application.handle} was not accepted{application.decisionNote ? `: ${application.decisionNote}` : '.'} A new application is possible 30 days after the decision.</p>
           )}
-          <div className="btns">
-            <button className="btn primary" disabled={busy} onClick={loginWithX}>Log in with X</button>
-            <button className="btn" onClick={signOut}>Disconnect wallet</button>
-          </div>
+          <form className="form" onSubmit={loginWithX}>
+            <label className="full">Chain of the wallet you just connected
+              <select name="chain" defaultValue="robinhood">{EVM_CHAINS.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+            </label>
+            <label className="full" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, textTransform: 'none', letterSpacing: 0 }}>
+              <input name="walletConsent" type="checkbox" required style={{ width: 'auto', marginTop: 4 }} />
+              <span>I agree that this wallet is saved as the rating wallet of my account, shown publicly, and that its history is used in my rating.</span>
+            </label>
+            <div className="full btns">
+              <button className="btn primary" disabled={busy}>Log in with X</button>
+              <button type="button" className="btn" onClick={signOut}>Disconnect wallet</button>
+            </div>
+          </form>
         </>
       )}
 

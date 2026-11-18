@@ -82,6 +82,8 @@ export class ApplicationsService {
       return this.prisma.application.update({ where: { id }, data: { status: 'rejected', decisionNote: dto.note, decidedAt: now, decidedById: staff.id }, select: { id: true, status: true } });
     }
 
+    const member = await this.prisma.member.findUnique({ where: { id: a.memberId }, select: { walletAddress: true } });
+    if (!member) throw new NotFoundException('The applicant no longer exists');
     const taken = await this.prisma.influencer.findUnique({ where: { handle: a.handle } });
     const takenAccount = await this.prisma.socialAccount.findUnique({ where: { platform_handle: { platform: 'x', handle: a.handle } } });
     if (taken || takenAccount) throw new ConflictException(`@${a.handle} is already tracked`);
@@ -93,6 +95,8 @@ export class ApplicationsService {
         data: {
           handle: a.handle, displayName: a.displayName, avatarUrl: a.avatarUrl, participating: true,
           accounts: { create: { platform: 'x', handle: a.handle, followers: a.followers, claimedById: a.memberId, claimedAt: now } },
+          // The applicant agreed on the claim screen that the login wallet is shown and used in the rating.
+          ...(a.walletChain ? { wallets: { create: { chainKey: a.walletChain, address: member.walletAddress, method: 'signature' as const } } } : {}),
         },
       }),
       this.prisma.application.update({ where: { id }, data: { status: 'accepted', decisionNote: dto.note ?? null, decidedAt: now, decidedById: staff.id } }),

@@ -25,7 +25,7 @@ export const Hint = ({ children }: { children: React.ReactNode }) => (
   <span style={{ textTransform: 'none', letterSpacing: 0, fontFamily: 'var(--sans)', fontSize: 12.5, color: 'var(--ink-faint)' }}>{children}</span>
 );
 
-export const CHAINS = ['ethereum', 'base', 'arbitrum', 'optimism', 'polygon', 'bnb', 'avalanche', 'berachain', 'solana', 'sui', 'aptos', 'ton'];
+export const CHAINS = ['ethereum', 'base', 'arbitrum', 'optimism', 'polygon', 'bnb', 'avalanche', 'berachain', 'robinhood', 'solana', 'sui', 'aptos', 'ton'];
 
 export const val = (form: HTMLFormElement, name: string) => String(new FormData(form).get(name) ?? '').trim();
 export const optVal = (form: HTMLFormElement, name: string) => val(form, name) || undefined;

@@ -2,7 +2,7 @@ import {
   BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Inject, Injectable, Module, NotFoundException, Post, UnauthorizedException, UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { IsIn, IsOptional, IsString, IsUrl, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, IsUrl, Matches, MaxLength, MinLength } from 'class-validator';
 import { Member, TipKind } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -19,6 +19,13 @@ import { HttpXOAuth, makePkce, X_OAUTH, XOAuthAdapter, XProfile } from './x-oaut
 export class XCallbackDto {
   @IsString() @MaxLength(512) code: string;
   @IsString() @MaxLength(64) state: string;
+}
+
+export class StartClaimDto {
+  /** Chain of the login wallet. It is saved as the account's rating wallet when the claim succeeds. */
+  @IsString() @MaxLength(32) chain: string;
+  /** The owner agrees that the login wallet is shown publicly and its history is used in the rating. */
+  @IsBoolean() consent: boolean;
 }
 
 export class WalletNonceDto {
@@ -73,14 +80,19 @@ export class ClaimsService {
   // ─────────────────────────── Claim ───────────────────────────
 
   /** Step 1: the member is sent to X to log in. The PKCE verifier is kept here, keyed by a one-time state. */
-  async start(member: Member) {
+  async start(member: Member, dto: StartClaimDto) {
+    if (dto.consent !== true) throw new BadRequestException('Agree that your login wallet is shown publicly and used in your rating');
+    const chain = dto.chain.toLowerCase();
+    const cfg = CHAIN_REGISTRY[chain];
+    if (!cfg || cfg.addressFormat !== 'evm_hex') throw new BadRequestException('Choose an EVM chain for your login wallet');
+    if (!isValidAddressForChain(member.walletAddress, cfg.addressFormat)) throw new BadRequestException(`Your login wallet is not a valid ${cfg.displayName} address`);
     const mine = await this.prisma.socialAccount.findUnique({ where: { claimedById: member.id } });
     if (mine) throw new ConflictException(`This wallet already manages @${mine.handle}`);
     const { verifier, challenge } = makePkce();
     const state = randomBytes(16).toString('hex');
     const url = this.x.authorizeUrl(state, challenge); // fails closed when X credentials are not configured
     await this.prisma.authNonce.create({
-      data: { walletAddress: member.walletAddress, nonce: state, purpose: 'x_claim', subjectId: member.id, message: verifier, expiresAt: new Date(Date.now() + NONCE_TTL_MS) },
+      data: { walletAddress: member.walletAddress, nonce: state, purpose: 'x_claim', subjectId: member.id, chainKey: chain, message: verifier, expiresAt: new Date(Date.now() + NONCE_TTL_MS) },
     });
     return { authorizeUrl: url };
   }
@@ -100,12 +112,20 @@ export class ClaimsService {
     const account = await this.prisma.socialAccount.findUnique({ where: { platform_handle: { platform: 'x', handle } }, include: { influencer: true } });
     if (account?.influencer.status === 'removed') throw new NotFoundException(`@${handle} is not covered by FIDES`);
 
-    if (!account) return this.startApplication(member, profile);
+    const chainKey = row.chainKey;
+    if (!chainKey) throw new UnauthorizedException('Unknown login request');
+    if (!account) return this.startApplication(member, profile, chainKey);
     if (account.claimedById) throw new ConflictException(`@${handle} is already claimed`);
 
     await this.prisma.$transaction([
       this.prisma.socialAccount.update({ where: { id: account.id }, data: { claimedById: member.id, claimedAt: new Date() } }),
       this.prisma.influencer.update({ where: { id: account.influencerId }, data: { participating: true } }),
+      // The owner agreed on the claim screen. The login wallet was proved by the sign-in signature.
+      this.prisma.wallet.upsert({
+        where: { influencerId_chainKey_address: { influencerId: account.influencerId, chainKey, address: member.walletAddress } },
+        create: { influencerId: account.influencerId, chainKey, address: member.walletAddress, method: 'signature' },
+        update: { method: 'signature', verifiedAt: new Date() },
+      }),
     ]);
     return { status: 'claimed', handle, message: 'Profile claimed. Your rating is now marked Participating.' };
   }
@@ -114,7 +134,7 @@ export class ClaimsService {
    * The account is not covered yet. The verified X login proves the member owns it, so the member can apply for coverage.
    * The identity and follower count come from X, never from the form. A rejected application can be repeated after a cooldown.
    */
-  private async startApplication(member: Member, profile: XProfile) {
+  private async startApplication(member: Member, profile: XProfile, walletChain: string) {
     const { username: handle } = profile;
     if (profile.followers < RULES.minFollowers) {
       throw new BadRequestException(`FIDES only covers public accounts with at least ${RULES.minFollowers.toLocaleString('en')} followers`);
@@ -127,7 +147,7 @@ export class ClaimsService {
     if (latest?.status === 'rejected' && latest.decidedAt && Date.now() < latest.decidedAt.getTime() + REAPPLY_DAYS * 86400_000) {
       throw new ConflictException(`A rejected application can be repeated ${REAPPLY_DAYS} days after the decision`);
     }
-    const data = { handle, displayName: profile.name.slice(0, 60), avatarUrl: profile.avatarUrl, followers: profile.followers };
+    const data = { handle, displayName: profile.name.slice(0, 60), avatarUrl: profile.avatarUrl, followers: profile.followers, walletChain };
     if (latest?.status === 'draft') await this.prisma.application.update({ where: { id: latest.id }, data });
     else await this.prisma.application.create({ data: { memberId: member.id, ...data } });
     return { status: 'application', handle, message: `@${handle} is not covered yet. Fill in the application below.` };
@@ -249,8 +269,8 @@ export class ClaimsController {
   @Post('claim/x/start')
   @UseGuards(SessionGuard)
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  start(@CurrentMember() mc: MemberContext) {
-    return this.claims.start(mc.member);
+  start(@CurrentMember() mc: MemberContext, @Body() dto: StartClaimDto) {
+    return this.claims.start(mc.member, dto);
   }
 
   @Post('claim/x/complete')
