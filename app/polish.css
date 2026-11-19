@@ -426,3 +426,6 @@ input[type="checkbox"]:focus-visible { outline: none; box-shadow: 0 0 0 3px var(
 .kv > div:nth-child(even) { padding-right: 28px; }
 .win-foot { padding-left: 28px; padding-right: 28px; }
 .band { padding-left: 28px; padding-right: 28px; }
+
+/* Home actions row: fixed card width, five cards fit side by side, new ones scroll in from the right */
+.track { grid-auto-columns: max(240px, calc((100% - 56px) / 5)); }
