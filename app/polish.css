@@ -269,7 +269,7 @@ footer .fc .socials a:hover { transform: translateY(-2px); background: var(--bra
   /* Phone menu: a tidy grid, three links per row, the two icons share the last row. Every item stays visible. */
   .nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .nav a { grid-column: span 2; justify-content: center; text-align: center; padding: 0 6px; min-height: 42px; box-shadow: inset 0 -1px 0 var(--line-2); }
-  .nav a.ic { grid-column: span 3; }
+  .nav a.ic { grid-column: 1 / -1; }
   .nav a:nth-last-child(-n+2) { box-shadow: none; }
   .claim .txt { display: none; }
   .claim .txt-short { display: inline; }
