@@ -1,7 +1,19 @@
 import Link from 'next/link';
+import type { Report } from '@/lib/api';
+import { OUTLOOK, formatRating } from '@/lib/format';
 import { BAND_NAME, SCALE_ROWS } from '@/lib/scale';
 
-export default function ScalePage() {
+/** One plain sentence about how the committee rating relates to the scorecard. */
+function committeeSentence(report: Report): string {
+  const { rating: r } = report;
+  const s = r.scorecard;
+  const idx = (x: string | null) => SCALE_ROWS.findIndex((row) => row.rating.replace('−', '-') === (x ?? '').replace('−', '-'));
+  const gap = idx(r.rating) - idx(s.scorecardRating);
+  if (idx(r.rating) < 0 || idx(s.scorecardRating) < 0 || gap === 0) return `The committee rating, ${formatRating(r.rating)}, matches the scorecard.`;
+  return `The committee rating is ${formatRating(r.rating)}, ${Math.abs(gap)} notch${Math.abs(gap) > 1 ? 'es' : ''} ${gap > 0 ? 'below' : 'above'} the scorecard.`;
+}
+
+export default function ScalePage({ report }: { report: Report | null }) {
   return (
     <>
       <section className="box ph">
@@ -58,12 +70,18 @@ export default function ScalePage() {
           <Link className="btn" href="/claim" style={{ alignSelf: 'flex-start' }}>Claim your profile ↗</Link>
         </div>
       </section>
-      <section className="box">
-        <div className="secbar"><h3>Worked example</h3><Link className="crumbs" href="/ratings" style={{ color: 'var(--brass)' }}>Open the report for @lunar_alpha →</Link></div>
-        <div className="panel">
-          <p>A fictional account, @lunar_alpha, scores 66 on the scorecard, which maps to BBB+. The committee votes BBB, BBB and BBB+, so the median is BBB, one notch below the scorecard, because three of six proven paid promotions were not disclosed in the last six months. Outlook Negative, since disclosure is getting worse.</p>
-        </div>
-      </section>
+      {report && (
+        <section className="box">
+          <div className="secbar"><h3>Latest rating</h3><Link className="crumbs" href={`/ratings/${report.account.handle}`} style={{ color: 'var(--brass)' }}>Open the report for @{report.account.handle} →</Link></div>
+          <div className="panel">
+            <p>
+              The latest published rating is for @{report.account.handle}. The scorecard gives {report.rating.scorecard.totalScore}, which maps to {formatRating(report.rating.scorecard.scorecardRating)}. {committeeSentence(report)}
+              {report.rating.rationale ? ` Rationale: ${report.rating.rationale}` : ''}
+              {report.rating.outlook && OUTLOOK[report.rating.outlook] ? ` Outlook ${OUTLOOK[report.rating.outlook].label}.` : ''}
+            </p>
+          </div>
+        </section>
+      )}
     </>
   );
 }
