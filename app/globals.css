@@ -52,7 +52,8 @@ h2 em,h1 em{font-style:italic;color:var(--brass);font-weight:500}
 .nav a:hover{background:var(--brass-soft)}
 .nav a.on{background:var(--brass);color:var(--paper);border-right-color:var(--rule)}
 .nav a .n{opacity:.55;margin-right:4px}
-.nav a.ic{padding:0 14px}
+.nav a{flex:1 1 auto;justify-content:center}
+.nav a.ic{padding:0 22px;flex:0 0 auto}
 .claim{display:flex;align-items:center;gap:12px;padding:0 18px;background:var(--speculative);color:#1f1a10;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.06em;border-left:var(--bw) solid var(--rule)}
 .claim:hover{background:#d99a1c}
 .arrow-box{width:26px;height:26px;border:var(--bw) solid currentColor;display:grid;place-items:center}
