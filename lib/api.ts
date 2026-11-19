@@ -17,6 +17,7 @@ export interface RatingAction {
   type: ActionType;
   handle: string;
   displayName: string | null;
+  avatarUrl?: string | null;
   rating: string | null;
   previousRating: string | null;
   outlook: string | null;

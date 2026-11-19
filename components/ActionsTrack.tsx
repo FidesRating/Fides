@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import SmallAvatar from './SmallAvatar';
 import type { RatingAction } from '@/lib/api';
 import { ACTION_CLASS, ACTION_LABEL, OUTLOOK, formatDate, formatRating } from '@/lib/format';
 
@@ -7,7 +8,10 @@ export function ActionCard({ a }: { a: RatingAction }) {
   return (
     <Link className={`ac ${ACTION_CLASS[a.type] ?? 'aff'}`} href={`/ratings/${a.handle}`}>
       <span className="type">{ACTION_LABEL[a.type] ?? a.type.toUpperCase()}</span>
-      <span className="h">@{a.handle}</span>
+      <span className="h" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <SmallAvatar handle={a.handle} url={a.avatarUrl ?? null} />
+        <span>@{a.handle}</span>
+      </span>
       <span className="move">
         {a.previousRating && <span className="from">{formatRating(a.previousRating)} →</span>}
         <span className="to">{formatRating(a.rating)}</span>
