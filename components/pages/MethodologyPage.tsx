@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import ScorecardTerminal from '@/components/ScorecardTerminal';
+import type { Report } from '@/lib/api';
 
-export default function MethodologyPage() {
+export default function MethodologyPage({ report }: { report: Report | null }) {
   return (
     <>
       <section className="box ph">
@@ -61,8 +63,8 @@ export default function MethodologyPage() {
           </div>
         </div>
         <div className="term" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className="win-bar"><span>scorecard.sh · @lunar_alpha</span><span className="ctl" aria-hidden="true">▁ ▢ ✕</span></div>
-<pre><span className="p">$</span> fides score @lunar_alpha{"\n"}<span className="o">&gt; accuracy     56 × 0.35 = 19.60</span>{"\n"}<span className="o">&gt; disclosure   50 × 0.25 = 12.50</span>{"\n"}<span className="o">&gt; wallet       80 × 0.25 = 20.00</span>{"\n"}<span className="o">&gt; conduct      94 × 0.15 = 14.10</span>{"\n"}<span className="g">&gt; total        66.2 → 66 → BBB+</span>{"\n"}<span className="p">$</span> fides committee --votes BBB,BBB,BBB+{"\n"}<span className="o">&gt; median       BBB  (−1 notch, reason published)</span>{"\n"}<span className="rd">&gt; outlook      Negative</span></pre>
+          <div className="win-bar"><span>scorecard.sh</span><span className="ctl" aria-hidden="true">▁ ▢ ✕</span></div>
+<ScorecardTerminal report={report} />
         </div>
       </section>
       <section className="box split">

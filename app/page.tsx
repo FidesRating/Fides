@@ -24,7 +24,7 @@ export default async function Home() {
       <RatingsPreview ratings={ratings ?? []} />
       <ReportSection report={featured?.state === 'ok' ? featured.data : null} />
       <BuiltSection />
-      <MethodSection />
+      <MethodSection report={featured?.state === 'ok' ? featured.data : null} />
       <ResearchSection />
       <DeskSection />
       <WallSection />

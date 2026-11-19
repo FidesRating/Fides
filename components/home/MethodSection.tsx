@@ -1,4 +1,7 @@
-export default function MethodSection() {
+import type { Report } from '@/lib/api';
+import ScorecardTerminal from '@/components/ScorecardTerminal';
+
+export default function MethodSection({ report }: { report: Report | null }) {
   return (
     <>
     <section className="box method" id="method" aria-labelledby="h-method">
@@ -28,7 +31,7 @@ export default function MethodSection() {
       <div className="r">
         <div className="term">
           <div className="win-bar"><span>scorecard.sh</span><span className="ctl" aria-hidden="true">▁ ▢ ✕</span></div>
-<pre><span className="p">$</span> fides score @lunar_alpha{"\n"}<span className="o">&gt; accuracy     56 × 0.35 = 19.60</span>{"\n"}<span className="o">&gt; disclosure   50 × 0.25 = 12.50</span>{"\n"}<span className="o">&gt; wallet       80 × 0.25 = 20.00</span>{"\n"}<span className="o">&gt; conduct      94 × 0.15 = 14.10</span>{"\n"}<span className="g">&gt; total        66.2 → 66 → BBB+</span>{"\n"}<span className="p">$</span> fides committee --votes BBB,BBB,BBB+{"\n"}<span className="o">&gt; median       BBB  (−1 notch, rationale published)</span>{"\n"}<span className="rd">&gt; outlook      Negative</span>{"\n"}<span className="p">$</span> fides notice @lunar_alpha{"\n"}<span className="o">&gt; 48h notice before publication</span>{"\n"}<span className="p">$</span> <span className="caret"></span></pre>
+<ScorecardTerminal report={report} />
         </div>
         <div className="committee">
           <span className="eyebrow">RATING COMMITTEE</span>

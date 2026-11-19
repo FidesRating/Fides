@@ -212,3 +212,12 @@ export const getFilteredRatings = (f: RatingFilters) => {
   for (const [k, v] of Object.entries(f)) if (v) q.set(k, v);
   return get<RatingListItem[]>(`/ratings${q.size ? `?${q}` : ''}`);
 };
+
+/** Report of the most recently published rating, or null when nothing is published yet. */
+export async function getLatestReport(): Promise<Report | null> {
+  const ratings = await getRatings();
+  const latest = [...(ratings ?? [])].sort((x, y) => y.lastAction.publishedAt.localeCompare(x.lastAction.publishedAt))[0];
+  if (!latest) return null;
+  const r = await getReport(latest.handle);
+  return r.state === 'ok' ? r.data : null;
+}
