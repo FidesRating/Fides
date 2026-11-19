@@ -26,6 +26,8 @@ export default function ClaimFlow() {
   const [application, setApplication] = useState<Application | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  // True once the first profile lookup for the stored session has finished, so the page never flashes the wrong step.
+  const [loaded, setLoaded] = useState(false);
   // The code and state X sends back are kept until the wallet is signed in.
   const pending = useRef<{ code: string; state: string } | null>(null);
 
@@ -33,7 +35,7 @@ export default function ClaimFlow() {
 
   const loadProfile = useCallback(async (tok: string) => {
     const r = await call('/claim/me', tok);
-    if (r.status === 401) { writeToken(null); setToken(null); return; }
+    if (r.status === 401) { writeToken(null); setToken(null); setLoaded(true); return; }
     setProfile(r.ok ? r.json : null);
     // Not a covered account yet: show the application, if there is one.
     if (!r.ok) {
@@ -42,6 +44,7 @@ export default function ClaimFlow() {
     } else {
       setApplication(null);
     }
+    setLoaded(true);
   }, [call]);
 
   const completeX = useCallback(async (tok: string) => {
@@ -62,6 +65,7 @@ export default function ClaimFlow() {
     }
     const tok = readToken();
     setToken(tok);
+    if (!tok) setLoaded(true);
     if (tok) {
       loadProfile(tok).then(() => completeX(tok));
     } else if (pending.current) {
@@ -164,11 +168,16 @@ export default function ClaimFlow() {
         </>
       )}
 
-      {token && !profile && (!application || application.status === 'rejected') && (
+      {token && !loaded && <p role="status">Loading your session...</p>}
+
+      {token && loaded && !profile && (!application || application.status === 'rejected' || application.status === 'accepted') && (
         <>
           <h2>2. Log in with X</h2>
           <p>X confirms which account you control. FIDES reads only your username, name, picture and follower count.</p>
           <p>If your account is already covered, you claim it. If it is not covered yet, you can apply for coverage. You can only apply for the account you log in with.</p>
+          {application?.status === 'accepted' && (
+            <p role="status">Your application for @{application.handle} was accepted. Log in with X to claim the account.</p>
+          )}
           {application?.status === 'rejected' && (
             <p role="status">Your last application for @{application.handle} was not accepted{application.decisionNote ? `: ${application.decisionNote}` : '.'} A new application is possible 30 days after the decision.</p>
           )}
@@ -188,7 +197,7 @@ export default function ClaimFlow() {
         </>
       )}
 
-      {token && !profile && application?.status === 'draft' && (
+      {token && loaded && !profile && application?.status === 'draft' && (
         <>
           <h2>3. Apply for coverage</h2>
           <p>
@@ -227,7 +236,7 @@ export default function ClaimFlow() {
         </>
       )}
 
-      {token && !profile && application?.status === 'submitted' && (
+      {token && loaded && !profile && application?.status === 'submitted' && (
         <>
           <h2>Application under review</h2>
           <p>Your application for @{application.handle} was sent. Staff review the evidence. The decision will appear on this page, so sign in again later to see it.</p>
