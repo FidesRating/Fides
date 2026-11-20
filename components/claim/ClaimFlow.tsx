@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiCall, connectedAccount, errorText, readToken, signInWithWallet, signOutSession, signText, writeToken } from '@/lib/session';
 import { useWalletGuard } from '@/lib/walletGuard';
+import ChainPicker from './ChainPicker';
 
 interface Notice { actionId: string; rating: string | null; publishAfter: string | null; message: string }
 interface Current {
@@ -14,9 +15,6 @@ interface Application {
   handle: string; displayName: string; followers: number; status: 'draft' | 'submitted' | 'accepted' | 'rejected';
   decisionNote: string | null; decidedAt: string | null;
 }
-
-// The login wallet is an EVM address, so only EVM chains are offered.
-const EVM_CHAINS = ['robinhood', 'ethereum', 'base', 'arbitrum', 'optimism', 'polygon', 'bnb', 'avalanche', 'berachain'];
 
 const fmt =(iso: string | null) => (iso ? new Date(iso).toUTCString() : '');
 
@@ -187,8 +185,8 @@ export default function ClaimFlow() {
             <p role="status">Your last application for @{application.handle} was not accepted{application.decisionNote ? `: ${application.decisionNote}` : '.'} A new application is possible 30 days after the decision.</p>
           )}
           <form className="form" onSubmit={loginWithX}>
-            <label className="full">Chain of the wallet you just connected
-              <select name="chain" defaultValue="robinhood">{EVM_CHAINS.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+            <label className="full" onClick={(e) => e.preventDefault()}>Chain of the wallet you just connected
+              <ChainPicker />
             </label>
             <label className="full" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, textTransform: 'none', letterSpacing: 0 }}>
               <input name="walletConsent" type="checkbox" required style={{ width: 'auto', marginTop: 4 }} />
@@ -263,8 +261,8 @@ export default function ClaimFlow() {
               ? <p>Your wallet is saved and cannot be changed here. Contact FIDES staff if it must be changed.</p>
               : (
                 <form className="form" onSubmit={saveWallet}>
-                  <label className="full">Chain of the wallet
-                    <select name="chain" defaultValue="robinhood">{EVM_CHAINS.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+                  <label className="full" onClick={(e) => e.preventDefault()}>Chain of the wallet
+                    <ChainPicker />
                   </label>
                   <p className="full">Your wallet asks you to sign: this wallet belongs to @{profile.handle}, FIDES may show it publicly and use its history in your rating. You can save one wallet, and it cannot be changed afterwards. No transaction, no fee.</p>
                   <div className="full"><button className="btn" disabled={busy}>Save connected wallet</button></div>
