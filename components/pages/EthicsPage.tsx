@@ -18,7 +18,7 @@ export default function EthicsPage() {
         <div className="panel">
           <span className="idx">WHO CAN BE RATED</span>
           <ul className="list-dot">
-            <li><span><b>Public accounts only</b>, with at least 10,000 followers, that regularly recommend tokens.</span></li>
+            <li><span><b>Public accounts only</b>, with at least 5,000 followers, that regularly recommend tokens.</span></li>
             <li><span>Private accounts, small accounts and people who do not act as influencers are not rated. If one is included by mistake, it is removed completely.</span></li>
             <li><span>We rate the account's public conduct, never the person's private life.</span></li>
           </ul>

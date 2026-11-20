@@ -30,7 +30,7 @@ export const SCALE_ROWS: ScaleRow[] = [
   { rating: 'CC', score: '12', band: 's', meaning: 'Very high risk.' },
   { rating: 'C', score: '< 12', band: 's', meaning: 'Almost no basis for trust.' },
   { rating: 'D', score: 'n/a', band: 'd', meaning: 'Default on trust: a proven undisclosed paid promotion and a sale of at least 50% of that token from a declared wallet within 7 days of the call.' },
-  { rating: 'NR', score: 'n/a', band: 'n', meaning: 'Not Rated: fewer than 15 measurable calls, or the rating was withdrawn.' },
+  { rating: 'NR', score: 'n/a', band: 'n', meaning: 'Not Rated: fewer than 10 calls, or the rating was withdrawn.' },
 ];
 
 export const BAND_NAME = { t: 'Trusted grade', s: 'Speculative grade', d: 'Default on trust', n: 'Not rated' } as const;

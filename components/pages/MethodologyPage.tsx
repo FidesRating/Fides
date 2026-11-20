@@ -35,7 +35,7 @@ export default function MethodologyPage({ report }: { report: Report | null }) {
           <table className="tbl">
             <thead><tr><th scope="col">Pillar</th><th scope="col">Weight</th><th scope="col">Data</th><th scope="col">Score 0–100</th></tr></thead>
             <tbody>
-              <tr><td>Call Accuracy</td><td className="res">35%</td><td className="wrap">Every call (a buy or sell recommendation for a token) at least 30 days old: price when posted vs price 30 days later, compared with BTC.</td><td className="wrap mono" style={{ fontSize: '12.5px' }}>100 × (0.6 × hit rate + 0.4 × clamp(median 30-day excess return + 0.5)). Hit rate = share of calls that beat BTC.</td></tr>
+              <tr><td>Call Accuracy</td><td className="res">35%</td><td className="wrap">Every call (a buy or sell recommendation for a token) at least 30 days old and with a known price: price when posted vs price 30 days later, compared with BTC. Calls without a price count toward the 10-call minimum but not toward this score.</td><td className="wrap mono" style={{ fontSize: '12.5px' }}>100 × (0.6 × hit rate + 0.4 × clamp(median 30-day excess return + 0.5)). Hit rate = share of calls that beat BTC.</td></tr>
               <tr><td>Disclosure</td><td className="res">25%</td><td className="wrap">Proven paid promotions: public evidence, a project's own statement, or an on-chain payment to a wallet the account declared itself.</td><td className="wrap mono" style={{ fontSize: '12.5px' }}>100 × disclosed promotions ÷ all proven promotions. No proven promotion = 100.</td></tr>
               <tr><td>Wallet Alignment</td><td className="res">25%</td><td className="wrap">Only wallets the influencer declared in a public post or proved with a signature.</td><td className="wrap mono" style={{ fontSize: '12.5px' }}>100 × (1 − dump rate). Dump = the wallet sold ≥ 50% of a promoted token within 7 days of the call. No verified wallet = 50.</td></tr>
               <tr><td>Conduct</td><td className="res">15%</td><td className="wrap">Deleted calls (found through archives) and promoted projects later proven to be rugs.</td><td className="wrap mono" style={{ fontSize: '12.5px' }}>100 − 150 × share of calls deleted − 20 × rugs not withdrawn; minimum 0.</td></tr>
@@ -54,7 +54,7 @@ export default function MethodologyPage({ report }: { report: Report | null }) {
             <table className="tbl">
               <thead><tr><th scope="col">Rule</th><th scope="col">Trigger</th><th scope="col">Result</th></tr></thead>
               <tbody>
-                <tr><td>Not Rated</td><td className="wrap">Fewer than 15 calls old enough to measure (≥ 30 days)</td><td className="res">NR, no public score</td></tr>
+                <tr><td>Not Rated</td><td className="wrap">Fewer than 10 calls in total</td><td className="res">NR, no public score</td></tr>
                 <tr><td>Default on trust</td><td className="wrap">One call: proven paid promotion, undisclosed, and a verified wallet sold ≥ 50% of that token within 7 days</td><td className="res">D, whatever the score</td></tr>
                 <tr><td>Rug cap</td><td className="wrap">Promoted a proven rug in the last 12 months and never withdrew the call</td><td className="res">CCC+ at most</td></tr>
                 <tr><td>Transparency cap</td><td className="wrap">No verified wallet. The highest ratings need a wallet that can be checked.</td><td className="res">A at most</td></tr>
@@ -96,7 +96,7 @@ export default function MethodologyPage({ report }: { report: Report | null }) {
       <section className="box">
         <div className="secbar"><h3>The rating process</h3><span className="eyebrow">6 STAGES · NR AND APPEAL</span></div>
         <div className="steps">
-          <div className="step"><span className="n">01</span><b>Coverage check</b><p>Public account, ≥ 10,000 followers, posts token calls regularly.</p><span className="who">ANALYST</span></div>
+          <div className="step"><span className="n">01</span><b>Coverage check</b><p>Public account, ≥ 5,000 followers, posts token calls regularly.</p><span className="who">ANALYST</span></div>
           <div className="step"><span className="n">02</span><b>Scorecard</b><p>Calls extracted and priced; promotions and wallets confirmed; scorecard drafted.</p><span className="who">ANALYST + AI STACK</span></div>
           <div className="step"><span className="n">03</span><b>Committee vote</b><p>Median of at least three votes, within ±1 notch and under any cap.</p><span className="who">RATING COMMITTEE</span></div>
           <div className="step"><span className="n">04</span><b>Notice</b><p>48 hours before publication. The account can correct facts and reply.</p><span className="who">ACCOUNT</span></div>

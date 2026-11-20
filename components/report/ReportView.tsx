@@ -143,7 +143,7 @@ export default function ReportView({ r }: { r: Report }) {
               {caps.map((c) => <div className="capline" key={c}>{c} applies.</div>)}
             </>
           ) : (
-            <div className="capline">Not Rated: fewer than 15 calls are old enough to measure.</div>
+            <div className="capline">Not Rated: fewer than 10 calls.</div>
           )}
         </div>
       </section>
