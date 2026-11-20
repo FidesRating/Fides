@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 
-// Logos live in /public/chains. Robinhood Chain has no logo file yet, so it shows a letter badge instead.
+// Logos live in /public/chains. A chain without a logo file shows a letter badge instead.
 const CHAINS: { key: string; name: string; logo: string | null }[] = [
-  { key: 'robinhood', name: 'Robinhood Chain', logo: null },
-  { key: 'ethereum', name: 'Ethereum', logo: '/chains/ethereum.svg' },
+  { key: 'robinhood', name: 'Robinhood Chain', logo: '/chains/robinhood.png' },
+  { key: 'ethereum', name: 'Ethereum', logo: '/chains/ethereum-mark.svg' },
   { key: 'base', name: 'Base', logo: '/chains/base.svg' },
   { key: 'arbitrum', name: 'Arbitrum', logo: '/chains/arbitrum.svg' },
   { key: 'optimism', name: 'Optimism', logo: '/chains/optimism.svg' },
