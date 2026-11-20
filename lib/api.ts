@@ -186,6 +186,12 @@ async function getStatus<T>(path: string): Promise<Fetched<T>> {
 
 const enc = encodeURIComponent;
 export const getReport = (handle: string) => getStatus<Report>(`/ratings/${enc(handle)}`);
+/** One published research article (plain text body). Staff identities are never included. */
+export interface Article extends ResearchItem {
+  body: string;
+  influencers: { handle: string }[];
+}
+export const getArticle = (slug: string) => getStatus<Article>(`/research/${enc(slug)}`);
 export const getHistory = (handle: string) => getStatus<HistoryRow[]>(`/ratings/${enc(handle)}/history`);
 
 /** Data for the share card of one published rating action. */

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import PageHeader from '@/components/PageHeader';
 import { getResearch } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -22,12 +23,12 @@ export default async function ResearchPage() {
         {articles.length ? (
           <div className="rgrid">
             {articles.map((a) => (
-              <article className="rart" key={a.slug}>
+              <Link href={`/research/${a.slug}`} className="rart" key={a.slug}>
                 <span className="t">{a.kind.replace(/_/g, ' ').toUpperCase()}</span>
                 <h3>{a.title}</h3>
                 {a.standfirst && <p>{a.standfirst}</p>}
                 <span className="st">{formatDate(a.publishedAt)}{a.readMinutes ? ` · ${a.readMinutes} min read` : ''}</span>
-              </article>
+              </Link>
             ))}
           </div>
         ) : (
