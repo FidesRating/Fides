@@ -90,14 +90,14 @@ total = 0.35 × Accuracy + 0.25 × Disclosure + 0.25 × Wallet Alignment + 0.15 
 AAA  AA+ AA AA−  A+ A A−  BBB+ BBB BBB−  ──►  Trusted grade
 BB+ BB BB−  B+ B B−  CCC+ CCC CCC−  CC  C  ──►  Speculative grade
 D                                          ──►  Default on trust
-NR                                         ──►  Not Rated (fewer than 10 measurable calls)
+NR                                         ──►  Not Rated (fewer than 10 calls)
 ```
 
 ### Automatic Rules (the committee cannot change them)
 
 | Rule | Trigger | Result |
 |---|---|---|
-| **Not Rated** | Fewer than 10 calls old enough to measure (30 days) | NR, no public score |
+| **Not Rated** | Fewer than 10 calls (only calls with prices, 30 days old, feed Call Accuracy) | NR, no public score |
 | **Default on trust** | One call with a proven undisclosed paid promotion and a verified wallet selling at least 50% within 7 days | D, whatever the score |
 | **Rug cap** | Promoted a proven rug in the last 12 months and never withdrew the call | CCC+ at most |
 | **Transparency cap** | No verified wallet | A at most |

@@ -104,7 +104,7 @@ export default function MethodologyPage({ report }: { report: Report | null }) {
           <div className="step"><span className="n">06</span><b>Surveillance</b><p>New data flows back into the scorecard; review every 6 months.</p><span className="who">ANALYST</span></div>
         </div>
         <div className="branches">
-          <div><b>NOT RATED</b>Fewer than 15 measurable calls at stage 2: the account gets NR and no public score.</div>
+          <div><b>NOT RATED</b>Fewer than 10 calls at stage 2: the account gets NR and no public score.</div>
           <div><b>APPEAL</b>Claimed accounts only, once per rating action, within 14 days. Decided under the same committee rules.</div>
           <div><b>TAKEDOWN</b>Accounts that do not meet the coverage rules are removed from every public page. <Link href="/ethics" style={{ color: 'var(--brass)' }}>Ethics</Link></div>
         </div>

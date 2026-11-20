@@ -73,8 +73,8 @@ export class CallDto {
   @IsOptional() @IsString() tokenAddress?: string;
   @IsOptional() @IsEnum(CallDirection) direction?: CallDirection;
   @IsOptional() @IsBoolean() sponsoredDisclosed?: boolean;
-  @IsNumber() @Min(0) priceAtCall: number;
-  @IsNumber() @Min(0) btcAtCall: number;
+  @IsOptional() @IsNumber() @Min(0) priceAtCall?: number;
+  @IsOptional() @IsNumber() @Min(0) btcAtCall?: number;
   @IsOptional() @IsNumber() @Min(0) price7d?: number;
   @IsOptional() @IsNumber() @Min(0) price30d?: number;
   @IsOptional() @IsNumber() @Min(0) price90d?: number;
@@ -252,7 +252,7 @@ export class AdminService {
         influencerId: id, socialAccountId: account.id, postUrl: c.postUrl, archiveUrl: c.archiveUrl, postedAt: new Date(c.postedAt),
         tokenSymbol: c.tokenSymbol.toUpperCase(), chainKey: c.chain?.toLowerCase(), tokenAddress: c.tokenAddress,
         direction: c.direction ?? 'long', sponsoredDisclosed: c.sponsoredDisclosed ?? false,
-        priceAtCall: toDec(q.priceAtCall)!, btcAtCall: toDec(q.btcAtCall)!,
+        priceAtCall: toDec(q.priceAtCall), btcAtCall: toDec(q.btcAtCall),
         price7d: toDec(q.price7d), price30d: toDec(q.price30d), price90d: toDec(q.price90d),
         btc7d: toDec(q.btc7d), btc30d: toDec(q.btc30d), btc90d: toDec(q.btc90d),
         priceSource: q.priceSource, priceSourceRef: q.priceSourceRef, enteredById: staff.id,

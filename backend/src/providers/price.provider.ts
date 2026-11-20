@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 
 /** Price inputs for one call, in the form the analyst or an automated provider supplies them. */
 export interface CallPriceInput {
-  priceAtCall: number;
-  btcAtCall: number;
+  priceAtCall?: number;
+  btcAtCall?: number;
   price7d?: number;
   price30d?: number;
   price90d?: number;

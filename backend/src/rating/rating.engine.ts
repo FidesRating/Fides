@@ -31,9 +31,9 @@ export interface CallInput {
   id: string;
   postedAt: Date;
   direction: 'long' | 'short';
-  priceAtCall: number;
+  priceAtCall: number | null;
   price30d: number | null;
-  btcAtCall: number;
+  btcAtCall: number | null;
   btc30d: number | null;
   deleted: boolean;
   rugConfirmedAt: Date | null;
@@ -87,13 +87,13 @@ export function computeScorecard(input: ScorecardInput): ScorecardResult {
   const { now, calls } = input;
   const measureCutoff = now.getTime() - RULES.measureAfterDays * 86400_000;
   const measurable = calls.filter(
-    (c) => c.price30d !== null && c.btc30d !== null && c.postedAt.getTime() <= measureCutoff && c.priceAtCall > 0 && c.btcAtCall > 0,
+    (c) => c.priceAtCall !== null && c.btcAtCall !== null && c.price30d !== null && c.btc30d !== null && c.postedAt.getTime() <= measureCutoff && c.priceAtCall > 0 && c.btcAtCall > 0,
   );
 
   // Pillar 1: Call Accuracy
   const excess = measurable.map((c) => {
-    const tokenRet = c.price30d! / c.priceAtCall - 1;
-    const btcRet = c.btc30d! / c.btcAtCall - 1;
+    const tokenRet = c.price30d! / c.priceAtCall! - 1;
+    const btcRet = c.btc30d! / c.btcAtCall! - 1;
     return c.direction === 'long' ? tokenRet - btcRet : -tokenRet - -btcRet;
   });
   const hitRate = excess.length ? excess.filter((e) => e > 0).length / excess.length : null;
@@ -136,7 +136,7 @@ export function computeScorecard(input: ScorecardInput): ScorecardResult {
   const undisclosedPaidCalls = new Set(input.promotions.filter((p) => !p.disclosed && p.callId).map((p) => p.callId!));
   const isDefault = [...undisclosedPaidCalls].some((id) => heldByCall.get(id) === true);
 
-  if (measurable.length < RULES.minMeasurableCalls && !isDefault) {
+  if (calls.length < RULES.minCalls && !isDefault) {
     return {
       notRated: true, isDefault: false, measurableCalls: measurable.length, pillars: null, totalScore: null,
       indicatedRating: null, scorecardRating: NOT_RATED, appliedCaps: [], inputs,

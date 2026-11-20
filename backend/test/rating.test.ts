@@ -61,7 +61,7 @@ test('no verified wallet: alignment 50 and capped at A', () => {
   assert.ok(r.appliedCaps.includes('no_wallet_cap'));
 });
 
-test('fewer than 10 measurable calls → NR, and 10 is enough to be rated', () => {
+test('fewer than 10 calls → NR, and 10 is enough to be rated', () => {
   const f = lunarAlphaFixture();
   f.calls = f.calls.slice(0, 9);
   const r = computeScorecard(f);
@@ -87,4 +87,13 @@ test('committee: ±1 notch, median, conservative ties, outlook', () => {
   assert.equal(actionType('A', 'BBB'), 'downgrade');
   assert.equal(actionType('BBB', 'A'), 'upgrade');
   assert.equal(actionType('BBB', 'BBB'), 'affirm');
+});
+
+test('calls without prices count toward the 10-call minimum but never feed Call Accuracy', () => {
+  const f = lunarAlphaFixture();
+  f.calls = f.calls.slice(0, 10).map((c, i) => (i < 8 ? { ...c, priceAtCall: null, btcAtCall: null, price30d: null, btc30d: null } : c));
+  const r = computeScorecard(f);
+  assert.equal(r.notRated, false);
+  assert.equal(r.measurableCalls, 2);
+  assert.equal(r.inputs.totalCalls, 10);
 });

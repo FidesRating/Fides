@@ -260,11 +260,11 @@ model Call {
   tokenAddress          String?
   direction             CallDirection @default(long)
   sponsoredDisclosed    Boolean       @default(false) // the post carries #ad / "sponsored"
-  priceAtCall           Decimal       @db.Decimal(38, 18)
+  priceAtCall           Decimal?      @db.Decimal(38, 18) // null when no reliable price was found
   price7d               Decimal?      @db.Decimal(38, 18)
   price30d              Decimal?      @db.Decimal(38, 18)
   price90d              Decimal?      @db.Decimal(38, 18)
-  btcAtCall             Decimal       @db.Decimal(20, 2)
+  btcAtCall             Decimal?      @db.Decimal(20, 2)
   btc7d                 Decimal?      @db.Decimal(20, 2)
   btc30d                Decimal?      @db.Decimal(20, 2)
   btc90d                Decimal?      @db.Decimal(20, 2)

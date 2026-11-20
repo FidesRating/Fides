@@ -44,7 +44,7 @@ export const PILLARS = [
 export type PillarKey = (typeof PILLARS)[number]['key'];
 
 export const RULES = {
-  minMeasurableCalls: 10,
+  minCalls: 10, // Not Rated below this many calls (head dev, 2026-11-20). Calls without prices count; only priced calls feed Call Accuracy.
   measureAfterDays: 30,
   dumpSoldPct: 0.5,
   dumpWindowDays: 7,

@@ -253,7 +253,7 @@ export class PublicService {
       ratings: SCALE.map((s) => ({ ...s, band: band(s.rating) })),
       special: [
         { rating: 'D', meaning: 'Default on trust: proven undisclosed paid promotion and a ≥50% sale of that token from a declared wallet within 7 days of the call.' },
-        { rating: 'NR', meaning: `Not Rated: fewer than ${RULES.minMeasurableCalls} measurable calls, or rating withdrawn.` },
+        { rating: 'NR', meaning: `Not Rated: fewer than ${RULES.minCalls} calls, or rating withdrawn.` },
       ],
       outlooks: OUTLOOK_TEXT,
       watches: WATCH_TEXT,

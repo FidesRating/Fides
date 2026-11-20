@@ -7,7 +7,7 @@ interface Account { id: string; platform: string; handle: string; followers: num
 interface WalletRow { id: string; chainKey: string; address: string; method: string; sourceUrl: string | null }
 interface PromotionRow { id: string; callId: string | null; source: string; evidenceUrl: string; disclosed: boolean; amountUsd: string | null; status: string; note: string | null }
 interface CallRow {
-  id: string; postUrl: string; postedAt: string; tokenSymbol: string; chainKey: string | null; direction: string; priceAtCall: string;
+  id: string; postUrl: string; postedAt: string; tokenSymbol: string; chainKey: string | null; direction: string; priceAtCall: string | null;
   price7d: string | null; price30d: string | null; price90d: string | null; sponsoredDisclosed: boolean;
   deletedAt: string | null; retractedAt: string | null; projectRugConfirmedAt: string | null;
   walletChecks: { walletId: string; heldAtCall: boolean; soldPct7d: string }[];
@@ -119,7 +119,7 @@ export default function InfluencerDetail({ ctx, id, isAdmin, onChanged, onClose 
                   calls: [{
                     postUrl: val(f, 'postUrl'), postedAt: new Date(val(f, 'postedAt')).toISOString(), tokenSymbol: val(f, 'tokenSymbol'),
                     chain: optVal(f, 'chain'), tokenAddress: optVal(f, 'tokenAddress'), direction: optVal(f, 'direction'),
-                    sponsoredDisclosed: checked(f, 'sponsoredDisclosed'), priceAtCall: Number(val(f, 'priceAtCall')), btcAtCall: Number(val(f, 'btcAtCall')),
+                    sponsoredDisclosed: checked(f, 'sponsoredDisclosed'), priceAtCall: optNum(f, "priceAtCall"), btcAtCall: optNum(f, "btcAtCall"),
                     price7d: optNum(f, 'price7d'), price30d: optNum(f, 'price30d'), price90d: optNum(f, 'price90d'),
                     btc7d: optNum(f, 'btc7d'), btc30d: optNum(f, 'btc30d'), btc90d: optNum(f, 'btc90d'), priceSourceRef: optVal(f, 'priceSourceRef'),
                   }],
@@ -133,8 +133,8 @@ export default function InfluencerDetail({ ctx, id, isAdmin, onChanged, onClose 
               <label>Chain (optional)<select name="chain" defaultValue=""><option value="">none</option>{CHAINS.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
               <label>Token address (optional)<input name="tokenAddress" /></label>
               <label>Direction<select name="direction" defaultValue="long"><option value="long">long</option><option value="short">short</option></select></label>
-              <label>Price at call<input name="priceAtCall" type="number" step="any" min={0} required /></label>
-              <label>BTC at call<input name="btcAtCall" type="number" step="any" min={0} required /></label>
+              <label>Price at call<input name="priceAtCall" type="number" step="any" min={0} /></label>
+              <label>BTC at call<input name="btcAtCall" type="number" step="any" min={0} /></label>
               <label>Price 7d<input name="price7d" type="number" step="any" min={0} /></label>
               <label>BTC 7d<input name="btc7d" type="number" step="any" min={0} /></label>
               <label>Price 30d<input name="price30d" type="number" step="any" min={0} /></label>
