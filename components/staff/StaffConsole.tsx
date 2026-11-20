@@ -5,11 +5,12 @@ import { apiCall, errorText, readToken, signInWithWallet, signOutSession, writeT
 import { useWalletGuard } from '@/lib/walletGuard';
 import { ApplicationsPanel, DraftsPanel, InfluencersPanel, TakedownPanel, TipsPanel } from './AnalystPanels';
 import { CommitteePanel } from './CommitteePanel';
+import { ResearchPanel } from './ResearchPanel';
 import { Ctx, panel } from './shared';
 
 type Role = 'analyst' | 'committee' | 'admin';
 interface StaffMe { role: Role; walletAddress: string }
-type Tab = 'influencers' | 'applications' | 'drafts' | 'tips' | 'takedowns' | 'committee';
+type Tab = 'influencers' | 'applications' | 'drafts' | 'tips' | 'takedowns' | 'research' | 'committee';
 
 const TABS: { id: Tab; label: string; roles: Role[] }[] = [
   { id: 'influencers', label: 'Influencers', roles: ['analyst', 'admin'] },
@@ -17,6 +18,7 @@ const TABS: { id: Tab; label: string; roles: Role[] }[] = [
   { id: 'drafts', label: 'Rating drafts', roles: ['analyst', 'admin'] },
   { id: 'tips', label: 'Desk tips', roles: ['analyst', 'admin'] },
   { id: 'takedowns', label: 'Takedowns', roles: ['analyst', 'admin'] },
+  { id: 'research', label: 'Research', roles: ['analyst', 'admin', 'committee'] },
   { id: 'committee', label: 'Committee', roles: ['committee'] },
 ];
 
@@ -133,6 +135,7 @@ export default function StaffConsole() {
           {tab === 'drafts' && isAnalyst && <DraftsPanel ctx={ctx} />}
           {tab === 'tips' && isAnalyst && <TipsPanel ctx={ctx} />}
           {tab === 'takedowns' && isAnalyst && <TakedownPanel ctx={ctx} isAdmin={me.role === 'admin'} />}
+          {tab === 'research' && <ResearchPanel ctx={ctx} />}
           {tab === 'committee' && me.role === 'committee' && <CommitteePanel ctx={ctx} onCount={setQueueCount} />}
         </>
       )}
