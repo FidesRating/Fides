@@ -117,14 +117,14 @@ describe('staff authorization', () => {
 });
 
 describe('coverage rules', () => {
-  test('an account under 10,000 followers is rejected', async () => {
-    const r = await api('/admin/influencers', { method: 'POST', key: KEYS.analyst, body: { handle: 'tiny_acct', displayName: 'Tiny', followers: 9999 } });
+  test('an account under 5,000 followers is rejected', async () => {
+    const r = await api('/admin/influencers', { method: 'POST', key: KEYS.analyst, body: { handle: 'tiny_acct', displayName: 'Tiny', followers: 4999 } });
     assert.equal(r.status, 400);
-    assert.match(r.text, /10,000/);
+    assert.match(r.text, /5,000/);
   });
 
-  test('exactly 10,000 followers is accepted and creates an X social account', async () => {
-    const r = await api('/admin/influencers', { method: 'POST', key: KEYS.analyst, body: { handle: 'edge_acct', displayName: 'Edge', followers: 10000 } });
+  test('exactly 5,000 followers is accepted and creates an X social account', async () => {
+    const r = await api('/admin/influencers', { method: 'POST', key: KEYS.analyst, body: { handle: 'edge_acct', displayName: 'Edge', followers: 5000 } });
     assert.equal(r.status, 201);
     assert.equal(r.json.accounts[0].platform, 'x');
   });

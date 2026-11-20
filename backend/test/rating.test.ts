@@ -61,15 +61,15 @@ test('no verified wallet: alignment 50 and capped at A', () => {
   assert.ok(r.appliedCaps.includes('no_wallet_cap'));
 });
 
-test('fewer than 15 measurable calls → NR, and 15 is enough to be rated', () => {
+test('fewer than 10 measurable calls → NR, and 10 is enough to be rated', () => {
   const f = lunarAlphaFixture();
-  f.calls = f.calls.slice(0, 14);
+  f.calls = f.calls.slice(0, 9);
   const r = computeScorecard(f);
   assert.equal(r.notRated, true);
   assert.equal(r.scorecardRating, 'NR');
 
   const enough = lunarAlphaFixture();
-  enough.calls = enough.calls.slice(0, 15);
+  enough.calls = enough.calls.slice(0, 10);
   assert.equal(computeScorecard(enough).notRated, false);
 });
 

@@ -90,12 +90,12 @@ job:       daily surveillance → reviewDue when the 180 day review is due, the 
 | Wallet Alignment | 25% | 100 × (1 − dump rate); no verified wallet = 50 |
 | Conduct | 15% | 100 − 150 × share of deleted calls − 20 × rugs not withdrawn |
 
-Automatic rules: fewer than 15 measurable calls → NR · undisclosed paid promotion and a dump on the same call → D ·
+Automatic rules: fewer than 10 measurable calls → NR · undisclosed paid promotion and a dump on the same call → D ·
 rug within 12 months → at most CCC+ · no verified wallet → at most A. The committee cannot change them.
 
 ## Rules enforced in code
 
-- An account below 10,000 followers cannot be added.
+- An account below 5,000 followers cannot be added.
 - Wallets only come from a public post by the account itself (`sourceUrl` required) or a signature. No "suspected" wallets.
 - Promotion evidence is used and shown only after it is `confirmed`.
 - A tip never changes a rating, and analysts never see who sent it.

@@ -44,7 +44,7 @@ export const PILLARS = [
 export type PillarKey = (typeof PILLARS)[number]['key'];
 
 export const RULES = {
-  minMeasurableCalls: 15,
+  minMeasurableCalls: 10,
   measureAfterDays: 30,
   dumpSoldPct: 0.5,
   dumpWindowDays: 7,
@@ -52,7 +52,7 @@ export const RULES = {
   rugCap: 'CCC+',
   noWalletCap: 'A',
   noDataPillarScore: 50,
-  minFollowers: 10_000, // The brief rejects accounts below 10,000 followers. Keep it equal to MIN_FOLLOWERS in components/staff/shared.tsx.
+  minFollowers: 5_000, // Coverage rule (head dev, 2026-11-20): reject accounts below 5,000 followers. Keep it equal to MIN_FOLLOWERS in components/staff/shared.tsx.
   minCommitteeVotes: 3,
   maxNotchesFromScorecard: 1,
   noticeHours: 48,

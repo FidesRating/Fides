@@ -44,7 +44,7 @@ export default async function RatingsPage({ searchParams }: { searchParams: Prom
         crumb="Ratings"
         chip="RATINGS · AAA TO D"
         title={<>Every rated account, <em>AAA first.</em></>}
-        sub="Public accounts on X with at least 10,000 followers that post token calls. Rated on what they do in public, never on their private lives."
+        sub="Public accounts on X with at least 5,000 followers that post token calls. Rated on what they do in public, never on their private lives."
         giant="A–D"
       />
       <section className="box">

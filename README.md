@@ -90,14 +90,14 @@ total = 0.35 × Accuracy + 0.25 × Disclosure + 0.25 × Wallet Alignment + 0.15 
 AAA  AA+ AA AA−  A+ A A−  BBB+ BBB BBB−  ──►  Trusted grade
 BB+ BB BB−  B+ B B−  CCC+ CCC CCC−  CC  C  ──►  Speculative grade
 D                                          ──►  Default on trust
-NR                                         ──►  Not Rated (fewer than 15 measurable calls)
+NR                                         ──►  Not Rated (fewer than 10 measurable calls)
 ```
 
 ### Automatic Rules (the committee cannot change them)
 
 | Rule | Trigger | Result |
 |---|---|---|
-| **Not Rated** | Fewer than 15 calls old enough to measure (30 days) | NR, no public score |
+| **Not Rated** | Fewer than 10 calls old enough to measure (30 days) | NR, no public score |
 | **Default on trust** | One call with a proven undisclosed paid promotion and a verified wallet selling at least 50% within 7 days | D, whatever the score |
 | **Rug cap** | Promoted a proven rug in the last 12 months and never withdrew the call | CCC+ at most |
 | **Transparency cap** | No verified wallet | A at most |
@@ -113,7 +113,7 @@ NR                                         ──►  Not Rated (fewer than 15 m
 | Wallets declared in a public post or proved with a signature | Wallets "believed" to belong to someone |
 | A project's own statement, public invoices, or on-chain payments to a declared wallet | Private messages, leaked data, unverifiable screenshots |
 
-Only public accounts with at least **10,000 followers** that regularly recommend tokens can be rated. We write "proven undisclosed", never accusatory wording. Takedown requests for accounts that do not qualify return **410 Gone** everywhere.
+Only public accounts with at least **5,000 followers** that regularly recommend tokens can be rated. We write "proven undisclosed", never accusatory wording. Takedown requests for accounts that do not qualify return **410 Gone** everywhere.
 
 ---
 
