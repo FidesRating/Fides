@@ -25,6 +25,29 @@ database, never a database from a previous product.
 
 Never run migrations or the seed against a database the project owner has not named.
 
+## Local demo (for recordings and screenshots)
+
+`.env` normally points at the real Supabase project, so the demo uses its own env file and its own commands.
+Login with X is replaced by a small local page with three fictional accounts: `@lunar_alpha` (covered, so it is
+claimed), `@demo_newcomer` (12,000 followers, not covered, so the application form appears) and `@demo_small`
+(1,200 followers, so the follower rejection appears). Nothing is sent to X and no X credentials are needed.
+
+```bash
+docker compose -f docker-compose.dev.yml up -d   # local Postgres and Redis
+cp demo.env.example .env.demo                    # ignored by git; edit STAFF_WALLETS if you want the staff console
+npm run demo:migrate                             # creates the schema in the local "fides" database
+npm run demo:seed                                # methodology and the fictional @lunar_alpha
+npm run demo:start                               # API on http://localhost:3001/api/v1
+# in the repository root, a second terminal:
+npm run dev                                      # http://localhost:3000, open /claim
+```
+
+Safety: every `demo:*` command first runs `scripts/demo-guard.js`, and the API itself refuses to boot with
+`X_OAUTH_MOCK=true` unless `DATABASE_URL`, `DIRECT_URL` and `REDIS_URL` point at localhost. Production refuses to
+boot when `X_OAUTH_MOCK` is set, and the mock is never created when `NODE_ENV=production`. Wallet sign-in stays
+real (MetaMask or Phantom sign a message, no transaction). To repeat a take from a clean state, run
+`docker compose -f docker-compose.dev.yml down -v`, then the migrate and seed steps again.
+
 ## Deploy on the free plans (Supabase and Railway)
 
 Remote changes need the project owner's explicit approval each time. Nothing here runs automatically on deploy.

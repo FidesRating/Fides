@@ -14,7 +14,8 @@ import { formatActionId } from '../public/presenter';
 import { MembersModule } from '../members/members.module';
 import { MembersService } from '../members/members.service';
 import { REAPPLY_DAYS } from '../applications/applications';
-import { HttpXOAuth, makePkce, X_OAUTH, XOAuthAdapter, XProfile } from './x-oauth';
+import { makePkce, X_OAUTH, XOAuthAdapter, XProfile, xOAuthFactory } from './x-oauth';
+import { DemoXController } from './demo-x.controller';
 
 export class XCallbackDto {
   @IsString() @MaxLength(512) code: string;
@@ -336,7 +337,7 @@ export class ClaimsController {
 
 @Module({
   imports: [MembersModule],
-  controllers: [ClaimsController],
-  providers: [ClaimsService, { provide: X_OAUTH, useClass: HttpXOAuth }],
+  controllers: [ClaimsController, DemoXController],
+  providers: [ClaimsService, { provide: X_OAUTH, useFactory: xOAuthFactory }],
 })
 export class ClaimsModule {}

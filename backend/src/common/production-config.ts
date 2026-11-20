@@ -19,6 +19,7 @@ export function assertProductionConfig(env: Record<string, string | undefined>):
     problems.push(`NOTICE_HOURS must be at least ${MIN_NOTICE_HOURS}`);
   }
   if (env.SEED_DEMO === 'true') problems.push('SEED_DEMO must not be true');
+  if (env.X_OAUTH_MOCK === 'true') problems.push('X_OAUTH_MOCK must not be true');
   if (env.TOKEN_GATE_MOCK_BALANCE) problems.push('TOKEN_GATE_MOCK_BALANCE must not be set');
   if (env.ROLE !== undefined && !['all', 'api', 'worker'].includes(env.ROLE)) problems.push('ROLE must be all, api or worker');
   try {

@@ -15,7 +15,10 @@
     "postinstall": "prisma generate",
     "prisma:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "test": "node --test -r ts-node/register test/*.test.ts"
+    "test": "node --test -r ts-node/register test/*.test.ts",
+    "demo:migrate": "node --env-file=.env.demo scripts/demo-guard.js && node --env-file=.env.demo node_modules/prisma/build/index.js migrate deploy",
+    "demo:seed": "node --env-file=.env.demo scripts/demo-guard.js && node --env-file=.env.demo node_modules/prisma/build/index.js db seed",
+    "demo:start": "node --env-file=.env.demo scripts/demo-guard.js && node --env-file=.env.demo node_modules/@nestjs/cli/bin/nest.js start --watch"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.2",

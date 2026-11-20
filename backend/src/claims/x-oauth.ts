@@ -69,3 +69,38 @@ export class HttpXOAuth implements XOAuthAdapter {
     };
   }
 }
+
+// ───────────────────────── Local demo login ─────────────────────────
+
+/** Fictional X accounts offered by the demo login. They exist only in the demo; none is a real person. */
+export const MOCK_X_PROFILES: XProfile[] = [
+  { username: 'lunar_alpha', name: 'Lunar Alpha (demo)', followers: 182_000, avatarUrl: null }, // the covered demo account from the seed
+  { username: 'demo_newcomer', name: 'Demo Newcomer', followers: 12_000, avatarUrl: null }, // not covered yet: shows the application
+  { username: 'demo_small', name: 'Demo Small Account', followers: 1_200, avatarUrl: null }, // below the follower minimum: shows the rejection
+];
+
+/** The mock login is for local demos only. It can never be switched on in production. */
+export const isXMockEnabled = (env: Record<string, string | undefined> = process.env) =>
+  env.X_OAUTH_MOCK === 'true' && env.NODE_ENV !== 'production';
+
+/**
+ * Stand-in for X on a developer machine. The "authorize" step opens a small page served by this API where the
+ * demo account is picked, then sends the browser back to the claim page with a code, exactly like X does.
+ * Nothing is sent to X and no credentials are needed.
+ */
+@Injectable()
+export class MockXOAuth implements XOAuthAdapter {
+  authorizeUrl(state: string, codeChallenge: string) {
+    const base = process.env.X_MOCK_BASE_URL || `http://localhost:${process.env.PORT || 3001}/api/v1`;
+    return `${base}/demo/x/authorize?${new URLSearchParams({ state, code_challenge: codeChallenge })}`;
+  }
+
+  async verifiedProfile(code: string): Promise<XProfile> {
+    const profile = MOCK_X_PROFILES.find((p) => `mock-${p.username}` === code);
+    if (!profile) throw new UnauthorizedException('X did not confirm this login. Try again.');
+    return profile;
+  }
+}
+
+/** Real X login everywhere, except the explicit local demo switch. */
+export const xOAuthFactory = (): XOAuthAdapter => (isXMockEnabled() ? new MockXOAuth() : new HttpXOAuth());
