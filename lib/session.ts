@@ -89,15 +89,33 @@ export async function signOutSession(token: string | null): Promise<void> {
 const utf8ToHex = (text: string) => '0x' + Array.from(new TextEncoder().encode(text), (b) => b.toString(16).padStart(2, '0')).join('');
 const bytesToHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 
+const WALLET_TIMEOUT_MS = 90_000;
+
+/** A wallet that never answers (a hidden popup, a locked wallet) must not leave the page waiting forever. */
+function withTimeout<T>(p: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('wallet-timeout')), WALLET_TIMEOUT_MS);
+    p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+  });
+}
+
+/** Turns a wallet or network error into a message for the page. */
+export function walletErrorText(e: unknown, fallback: string): string {
+  if ((e as { code?: number })?.code === 4001) return 'Wallet request was cancelled.';
+  if ((e as Error)?.message === 'wallet-timeout') return 'The wallet did not answer. Open your wallet, unlock it and look for a pending request, then try again.';
+  if (e instanceof TypeError) return 'Could not reach the FIDES API. Check your connection and try again.';
+  return fallback;
+}
+
 /** Asks the injected wallet of the given kind for its first account. Null when no such wallet is installed. */
 export async function connectedAccount(kind: WalletKind = 'evm'): Promise<string | null> {
   if (kind === 'solana') {
     const p = solanaProvider();
-    return p ? (await p.connect()).publicKey.toString() : null;
+    return p ? (await withTimeout(p.connect())).publicKey.toString() : null;
   }
   const wallet = (window as unknown as { ethereum?: EvmProvider }).ethereum;
   if (!wallet) return null;
-  const accounts = (await wallet.request({ method: 'eth_requestAccounts' })) as string[];
+  const accounts = (await withTimeout(wallet.request({ method: 'eth_requestAccounts' }))) as string[];
   return accounts[0] ?? null;
 }
 
@@ -106,12 +124,12 @@ export async function signText(text: string, address: string, kind: WalletKind =
   if (kind === 'solana') {
     const p = solanaProvider();
     if (!p) throw new Error('No wallet');
-    const { signature } = await p.signMessage(new TextEncoder().encode(text), 'utf8');
+    const { signature } = await withTimeout(p.signMessage(new TextEncoder().encode(text), 'utf8'));
     return bytesToHex(signature);
   }
   const wallet = (window as unknown as { ethereum?: EvmProvider }).ethereum;
   if (!wallet) throw new Error('No wallet');
-  return (await wallet.request({ method: 'personal_sign', params: [utf8ToHex(text), address] })) as string;
+  return (await withTimeout(wallet.request({ method: 'personal_sign', params: [utf8ToHex(text), address] }))) as string;
 }
 
 /** Signs in with an EVM or Solana wallet (a signature only, no transaction and no fee). Returns the session token or a message to show. */
@@ -130,9 +148,6 @@ export async function signInWithWallet(kind: WalletKind = 'evm'): Promise<{ toke
     writeSessionWallet(walletAddress, kind);
     return { token: v.json.token };
   } catch (e) {
-    // 4001 is the code for a request the user rejected (EIP-1193 and Phantom). Anything else is a real problem, such as a blocked API call.
-    if ((e as { code?: number })?.code === 4001) return { error: 'Wallet request was cancelled.' };
-    if (e instanceof TypeError) return { error: 'Could not reach the FIDES API. Check your connection and try again.' };
-    return { error: 'Wallet sign-in failed. Try again.' };
+    return { error: walletErrorText(e, 'Wallet sign-in failed. Try again.') };
   }
 }

@@ -35,6 +35,18 @@ export const ACTION_LABEL: Record<string, string> = {
   withdraw: 'WITHDRAWN',
 };
 
+/** The NEW badge on a card is shown only this many days after publication. */
+export const NEW_BADGE_DAYS = 3;
+
+/**
+ * Text of the type badge on an action card. Upgrade, downgrade, affirmed and withdrawn always show.
+ * NEW (the first rating of an account) disappears after NEW_BADGE_DAYS, so the badge means "just rated".
+ */
+export function badgeLabel(type: string, publishedAt: string, now: number = Date.now()): string | null {
+  if (type === 'new' && now - new Date(publishedAt).getTime() > NEW_BADGE_DAYS * 86_400_000) return null;
+  return ACTION_LABEL[type] ?? type.toUpperCase();
+}
+
 export const ACTION_CLASS: Record<string, string> = {
   new: 'new',
   upgrade: 'up',

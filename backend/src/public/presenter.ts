@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { band } from '../rating/rating.engine';
+import { actionType, band } from '../rating/rating.engine';
 import { DISCLAIMER, OUTLOOK_TEXT, PILLARS, RULES, WATCH_TEXT } from '../rating/methodology';
 import { activeWatch } from '../rating/watch';
 
@@ -13,6 +13,15 @@ export function notRatedReason(rating: string | null, inputs: unknown): string |
   return `${total} of ${RULES.minCalls} calls recorded`;
 }
 
+/**
+ * The action type shown to the public. It is derived from the previous and the new rating with the current rule,
+ * so actions stored under an older rule (for example Not Rated to a rating, once stored as new) show correctly without a data change.
+ */
+export function shownActionType<T extends string>(stored: T, previousRating: string | null | undefined, rating: string | null): string {
+  if (!rating || stored === 'withdraw') return stored;
+  return actionType(previousRating ?? null, rating);
+}
+
 /** Public part of one rating action. Never contains committee votes, analyst names or raw internal inputs. */
 export function presentAction(a: Prisma.RatingActionGetPayload<{ include: { reply: true } }>, previousRating?: string | null) {
   const pillars = a.accuracy === null ? null : PILLARS.map((p) => ({ key: p.key, label: p.label, weight: p.weight, score: (a as any)[p.key] as number }));
@@ -20,7 +29,7 @@ export function presentAction(a: Prisma.RatingActionGetPayload<{ include: { repl
   const watch = activeWatch(a);
   return {
     actionId: formatActionId(a.actionNumber),
-    type: a.type,
+    type: shownActionType(a.type, previousRating, a.rating),
     rating: a.rating,
     band: a.rating ? band(a.rating) : null,
     previousRating: previousRating ?? null,

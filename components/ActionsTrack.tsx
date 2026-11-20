@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import SmallAvatar from './SmallAvatar';
 import type { RatingAction } from '@/lib/api';
-import { ACTION_CLASS, ACTION_LABEL, OUTLOOK, formatDate, formatRating } from '@/lib/format';
+import { ACTION_CLASS, OUTLOOK, badgeLabel, formatDate, formatRating } from '@/lib/format';
 
 export function ActionCard({ a }: { a: RatingAction }) {
   const outlook = a.outlook ? OUTLOOK[a.outlook] : null;
+  const badge = badgeLabel(a.type, a.publishedAt);
   return (
     <Link className={`ac ${ACTION_CLASS[a.type] ?? 'aff'}`} href={`/ratings/${a.handle}`}>
-      <span className="type">{ACTION_LABEL[a.type] ?? a.type.toUpperCase()}</span>
+      {badge && <span className="type">{badge}</span>}
       <span className="h" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <SmallAvatar handle={a.handle} url={a.avatarUrl ?? null} />
         <span>@{a.handle}</span>

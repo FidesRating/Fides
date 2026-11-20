@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiCall, connectedAccount, errorText, readSessionKind, readToken, signInWithWallet, signOutSession, signText, writeToken } from '@/lib/session';
+import { apiCall, connectedAccount, errorText, readSessionKind, readToken, signInWithWallet, signOutSession, signText, walletErrorText, writeToken } from '@/lib/session';
 import type { WalletKind } from '@/lib/session';
 import { useWalletGuard } from '@/lib/walletGuard';
 import ChainPicker, { chainKind } from './ChainPicker';
@@ -115,7 +115,7 @@ export default function ClaimFlow() {
       setMessage(v.ok ? 'Wallet saved. It is shown on your rating page.' : errorText(v));
       if (v.ok) await loadProfile(token);
     } catch (err) {
-      setMessage((err as { code?: number })?.code === 4001 ? 'Wallet request was cancelled.' : 'Could not save the wallet. Try again.');
+      setMessage(walletErrorText(err, 'Could not save the wallet. Try again.'));
     } finally {
       setBusy(false);
     }

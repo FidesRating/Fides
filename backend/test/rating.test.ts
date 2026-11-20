@@ -87,6 +87,13 @@ test('committee: ±1 notch, median, conservative ties, outlook', () => {
   assert.equal(actionType('A', 'BBB'), 'downgrade');
   assert.equal(actionType('BBB', 'A'), 'upgrade');
   assert.equal(actionType('BBB', 'BBB'), 'affirm');
+  // Not Rated has no place on the scale: leaving it is an upgrade, entering it is a downgrade.
+  assert.equal(actionType('NR', 'BB'), 'upgrade');
+  assert.equal(actionType('NR', 'D'), 'upgrade');
+  assert.equal(actionType('BBB', 'NR'), 'downgrade');
+  assert.equal(actionType('NR', 'NR'), 'affirm');
+  // New is only for the first action of an account, even when that first rating is NR.
+  assert.equal(actionType(null, 'NR'), 'new');
 });
 
 test('calls without prices count toward the 10-call minimum but never feed Call Accuracy', () => {
@@ -105,4 +112,15 @@ test('Not Rated reason shows the call count and only for NR below the minimum', 
   assert.equal(notRatedReason('NR', { totalCalls: 10 }), null);
   assert.equal(notRatedReason('NR', null), null);
   assert.equal(notRatedReason('BBB', { totalCalls: 4 }), null);
+});
+
+test('public action type follows the current rule even for rows stored under an older one', async () => {
+  const { shownActionType } = await import('../src/public/presenter');
+  // Stored as new before the rule changed: Not Rated to a rating is shown as an upgrade.
+  assert.equal(shownActionType('new', 'NR', 'BB'), 'upgrade');
+  assert.equal(shownActionType('new', null, 'NR'), 'new');
+  assert.equal(shownActionType('new', null, 'BBB'), 'new');
+  assert.equal(shownActionType('downgrade', 'BBB', 'NR'), 'downgrade');
+  // A withdrawal keeps its own type.
+  assert.equal(shownActionType('withdraw', 'BBB', 'NR'), 'withdraw');
 });

@@ -10,7 +10,7 @@ import { CurrentMember, MemberContext, OptionalMemberGuard } from '../common/aut
 import { band, notch } from '../rating/rating.engine';
 import { ALL_RATINGS, DISCLAIMER, METHODOLOGY_VERSION, OUTLOOK_TEXT, PILLARS, RULES, SCALE, WATCH_TEXT } from '../rating/methodology';
 import { CHAIN_REGISTRY, explorerUrl } from '../config/explorer-registry';
-import { formatActionId, notRatedReason, num, presentAction } from './presenter';
+import { formatActionId, notRatedReason, num, presentAction, shownActionType } from './presenter';
 import { activeWatch } from '../rating/watch';
 
 export class ListRatingsDto {
@@ -77,7 +77,7 @@ export class PublicService {
       return {
         handle: i.handle, displayName: i.displayName, followers: maxFollowers(i.accounts), avatarUrl: i.avatarUrl, participating: i.participating,
         rating: a.rating!, band: band(a.rating!), notRatedReason: notRatedReason(a.rating, a.inputs), outlook: a.outlook, watch: activeWatch(a), totalScore: a.totalScore, weakestPillar: weakest,
-        lastAction: { actionId: formatActionId(a.actionNumber), type: a.type, previousRating: a.previous?.rating ?? null, publishedAt: a.publishedAt },
+        lastAction: { actionId: formatActionId(a.actionNumber), type: shownActionType(a.type, a.previous?.rating, a.rating), previousRating: a.previous?.rating ?? null, publishedAt: a.publishedAt },
       };
     });
     if (q.band) out = out.filter((r) => r.band === q.band);
@@ -178,23 +178,25 @@ export class PublicService {
       },
     });
     return rows.map((a) => ({
-      actionId: formatActionId(a.actionNumber), type: a.type, rating: a.rating, previousRating: a.previous?.rating ?? null,
+      actionId: formatActionId(a.actionNumber), type: shownActionType(a.type, a.previous?.rating, a.rating), rating: a.rating, previousRating: a.previous?.rating ?? null,
       outlook: a.outlook, watch: activeWatch(a), totalScore: a.totalScore, publishedAt: a.publishedAt, current: a.status === 'published',
     }));
   }
 
   async actions(q: ActionsFeedDto) {
     const rows = await this.prisma.ratingAction.findMany({
-      where: { status: { in: ['published', 'superseded'] }, influencer: { status: { not: 'removed' } }, ...(q.type ? { type: q.type as any } : {}) },
+      where: { status: { in: ['published', 'superseded'] }, influencer: { status: { not: 'removed' } } },
       orderBy: { publishedAt: 'desc' },
-      take: q.limit ?? 30,
+      // The type is derived, so a type filter is applied after mapping on a bounded window.
+      take: q.type ? 200 : q.limit ?? 30,
       include: { influencer: { select: { handle: true, displayName: true, avatarUrl: true } }, previous: { select: { rating: true } } },
     });
-    return rows.map((a) => ({
-      actionId: formatActionId(a.actionNumber), type: a.type, handle: a.influencer.handle, displayName: a.influencer.displayName,
+    const out = rows.map((a) => ({
+      actionId: formatActionId(a.actionNumber), type: shownActionType(a.type, a.previous?.rating, a.rating), handle: a.influencer.handle, displayName: a.influencer.displayName,
       avatarUrl: a.influencer.avatarUrl, rating: a.rating, previousRating: a.previous?.rating ?? null, outlook: a.outlook,
       watch: activeWatch(a), publishedAt: a.publishedAt,
     }));
+    return (q.type ? out.filter((r) => r.type === q.type) : out).slice(0, q.limit ?? 30);
   }
 
   /** Data for the share card of one published rating action: handle, old and new rating, outlook, type, date. */
@@ -212,7 +214,7 @@ export class PublicService {
     if (!a) throw new NotFoundException('Rating action not found');
     if (a.influencer.status === 'removed') throw new GoneException('This account is no longer covered by FIDES');
     return {
-      actionId: formatActionId(a.actionNumber), type: a.type, handle: a.influencer.handle, displayName: a.influencer.displayName,
+      actionId: formatActionId(a.actionNumber), type: shownActionType(a.type, a.previous?.rating, a.rating), handle: a.influencer.handle, displayName: a.influencer.displayName,
       rating: a.rating, band: a.rating ? band(a.rating) : null, previousRating: a.previous?.rating ?? null, outlook: a.outlook, publishedAt: a.publishedAt,
     };
   }

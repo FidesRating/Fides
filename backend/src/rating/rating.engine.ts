@@ -223,8 +223,18 @@ export function suggestOutlook(
   return 'stable';
 }
 
+/**
+ * Kind of a rating action.
+ * - new: the account had no rating action before (its first one).
+ * - upgrade: a rating moves up the scale, or an account moves from Not Rated to any rating.
+ * - downgrade: a rating moves down the scale, or an account moves from any rating to Not Rated.
+ * - affirm: the rating does not change.
+ */
 export function actionType(previousRating: string | null, newRating: string): 'new' | 'upgrade' | 'downgrade' | 'affirm' {
-  if (!previousRating || previousRating === NOT_RATED || newRating === NOT_RATED) return previousRating === newRating ? 'affirm' : 'new';
+  if (!previousRating) return 'new';
+  if (previousRating === newRating) return 'affirm';
+  if (previousRating === NOT_RATED) return 'upgrade';
+  if (newRating === NOT_RATED) return 'downgrade';
   const a = notch(previousRating), b = notch(newRating);
   return b < a ? 'upgrade' : b > a ? 'downgrade' : 'affirm';
 }
