@@ -84,7 +84,7 @@ export class ClaimsService {
     if (dto.consent !== true) throw new BadRequestException('Agree that your login wallet is shown publicly and used in your rating');
     const chain = dto.chain.toLowerCase();
     const cfg = CHAIN_REGISTRY[chain];
-    if (!cfg || cfg.addressFormat !== 'evm_hex') throw new BadRequestException('Choose an EVM chain for your login wallet');
+    if (!cfg || !['evm_hex', 'solana_base58'].includes(cfg.addressFormat)) throw new BadRequestException('Choose an EVM chain or Solana for your login wallet');
     if (!isValidAddressForChain(member.walletAddress, cfg.addressFormat)) throw new BadRequestException(`Your login wallet is not a valid ${cfg.displayName} address`);
     const mine = await this.prisma.socialAccount.findUnique({ where: { claimedById: member.id } });
     if (mine) throw new ConflictException(`This wallet already manages @${mine.handle}`);

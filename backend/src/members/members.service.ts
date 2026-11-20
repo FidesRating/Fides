@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { randomToken, sha256 } from '../common/crypto';
 import { TokenGateService } from '../common/token-gate.service';
-import { isValidEvmAddress, normalizeEvmAddress, verifyWalletSignature } from '../common/wallet-signature';
+import { isValidLoginAddress, normalizeLoginAddress, verifyWalletSignature } from '../common/wallet-signature';
 
 const NONCE_TTL_MS = 5 * 60_000;
 const SESSION_TTL_MS = 7 * 86400_000;
@@ -14,10 +14,10 @@ const MAX_API_KEYS = 5;
 export class MembersService {
   constructor(private readonly prisma: PrismaService, private readonly gate: TokenGateService) {}
 
-  /** Step 1 of login: a one-time message signed by an EVM wallet (personal_sign). No transaction, no fee. */
+  /** Step 1 of login: a one-time message signed by an EVM wallet (personal_sign) or a Solana wallet (signMessage). No transaction, no fee. */
   async createNonce(walletAddress: string) {
-    if (!isValidEvmAddress(walletAddress)) throw new BadRequestException('Sign in with an EVM wallet address (0x...)');
-    const wallet = normalizeEvmAddress(walletAddress);
+    if (!isValidLoginAddress(walletAddress)) throw new BadRequestException('Sign in with an EVM wallet (0x...) or a Solana wallet');
+    const wallet = normalizeLoginAddress(walletAddress);
     const nonce = randomBytes(16).toString('hex');
     const expiresAt = new Date(Date.now() + NONCE_TTL_MS);
     const message = [
@@ -32,8 +32,8 @@ export class MembersService {
   }
 
   async verifyLogin(walletAddress: string, nonce: string, signature: string) {
-    if (!isValidEvmAddress(walletAddress)) throw new BadRequestException('Sign in with an EVM wallet address (0x...)');
-    const wallet = normalizeEvmAddress(walletAddress);
+    if (!isValidLoginAddress(walletAddress)) throw new BadRequestException('Sign in with an EVM wallet (0x...) or a Solana wallet');
+    const wallet = normalizeLoginAddress(walletAddress);
     await consumeNonce(this.prisma, wallet, nonce, signature, 'login');
     const member = await this.prisma.member.upsert({
       where: { walletAddress: wallet },

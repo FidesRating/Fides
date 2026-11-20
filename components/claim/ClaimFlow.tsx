@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiCall, connectedAccount, errorText, readToken, signInWithWallet, signOutSession, signText, writeToken } from '@/lib/session';
+import { apiCall, connectedAccount, errorText, readSessionKind, readToken, signInWithWallet, signOutSession, signText, writeToken } from '@/lib/session';
+import type { WalletKind } from '@/lib/session';
 import { useWalletGuard } from '@/lib/walletGuard';
-import ChainPicker from './ChainPicker';
+import ChainPicker, { chainKind } from './ChainPicker';
 
 interface Notice { actionId: string; rating: string | null; publishAfter: string | null; message: string }
 interface Current {
@@ -71,10 +72,10 @@ export default function ClaimFlow() {
     }
   }, [loadProfile, completeX]);
 
-  async function signIn() {
+  async function signIn(kind: WalletKind) {
     setBusy(true);
     setMessage('');
-    const r = await signInWithWallet();
+    const r = await signInWithWallet(kind);
     if ('error' in r) {
       setMessage(r.error);
     } else {
@@ -103,11 +104,13 @@ export default function ClaimFlow() {
     const chain = String(new FormData(e.currentTarget).get('chain') ?? '');
     setBusy(true);
     try {
-      const address = await connectedAccount();
-      if (!address) { setMessage('Install an EVM wallet such as MetaMask to save a wallet.'); return; }
+      // A Solana chain is signed by a Solana wallet (Phantom). Every other chain is signed by an EVM wallet.
+      const kind = chainKind(chain);
+      const address = await connectedAccount(kind);
+      if (!address) { setMessage(kind === 'solana' ? 'Install a Solana wallet such as Phantom to save a Solana wallet.' : 'Install an EVM wallet such as MetaMask to save a wallet.'); return; }
       const n = await call('/claim/wallets/nonce', token, { chain, address });
       if (!n.ok) { setMessage(errorText(n)); return; }
-      const signature = await signText(n.json.message, address);
+      const signature = await signText(n.json.message, address, kind);
       const v = await call('/claim/wallets/verify', token, { address, nonce: n.json.nonce, signature });
       setMessage(v.ok ? 'Wallet saved. It is shown on your rating page.' : errorText(v));
       if (v.ok) await loadProfile(token);
@@ -166,7 +169,11 @@ export default function ClaimFlow() {
         <>
           <h2>1. Sign in with a wallet</h2>
           <p>A signature only. No transaction, no fee.</p>
-          <div className="btns"><button className="btn primary" disabled={busy} onClick={signIn}>{busy ? "Waiting for your wallet..." : "Connect wallet"}</button></div>
+          <div className="btns">
+            <button className="btn primary" disabled={busy} onClick={() => signIn('evm')}>{busy ? 'Waiting for your wallet...' : 'Connect EVM wallet'}</button>
+            <button className="btn" disabled={busy} onClick={() => signIn('solana')}>{busy ? 'Waiting for your wallet...' : 'Connect Solana wallet'}</button>
+          </div>
+          <p><small>EVM wallets such as MetaMask, or Solana wallets such as Phantom.</small></p>
         </>
       )}
 
@@ -186,7 +193,7 @@ export default function ClaimFlow() {
           )}
           <form className="form" onSubmit={loginWithX}>
             <label className="full" onClick={(e) => e.preventDefault()}>Chain of the wallet you just connected
-              <ChainPicker />
+              <ChainPicker show={readSessionKind()} />
             </label>
             <label className="full" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, textTransform: 'none', letterSpacing: 0 }}>
               <input name="walletConsent" type="checkbox" required style={{ width: 'auto', marginTop: 4 }} />
@@ -262,7 +269,7 @@ export default function ClaimFlow() {
               : (
                 <form className="form" onSubmit={saveWallet}>
                   <label className="full" onClick={(e) => e.preventDefault()}>Chain of the wallet
-                    <ChainPicker />
+                    <ChainPicker show="all" />
                   </label>
                   <p className="full">Your wallet asks you to sign: this wallet belongs to @{profile.handle}, FIDES may show it publicly and use its history in your rating. You can save one wallet, and it cannot be changed afterwards. No transaction, no fee.</p>
                   <div className="full"><button className="btn" disabled={busy}>Save connected wallet</button></div>

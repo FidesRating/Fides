@@ -16,9 +16,22 @@ export function isValidEvmAddress(a: string) {
 /** Login and staff addresses are stored lowercase so one wallet is always one row, whatever case the wallet app shows. */
 export const normalizeEvmAddress = (a: string) => a.trim().toLowerCase();
 
+/** A Solana address is a base58 string that decodes to a 32-byte ed25519 public key. */
 export function isValidSolanaAddress(a: string) {
-  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a.trim());
+  const s = a.trim();
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s)) return false;
+  try {
+    return bs58.decode(s).length === 32;
+  } catch {
+    return false;
+  }
 }
+
+/** Member login accepts an EVM or a Solana wallet. Staff stay EVM only (see staff-wallets.ts). */
+export const isValidLoginAddress = (a: string) => isValidEvmAddress(a) || isValidSolanaAddress(a);
+
+/** EVM addresses are lowercased. Solana addresses are case sensitive and are kept exactly as given. */
+export const normalizeLoginAddress = (a: string) => (isValidEvmAddress(a) ? normalizeEvmAddress(a) : a.trim());
 
 /**
  * Verifies a wallet message signature:

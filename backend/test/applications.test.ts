@@ -8,7 +8,7 @@ const staff: any = { id: 's1' };
 const GOOD = ['https://x.com/a/status/1', 'https://x.com/a/status/2', 'https://x.com/a/status/3'];
 
 /** In-memory stand-in for the few Prisma calls the service makes. */
-function fake(opts: { draft?: any; submitted?: any; covered?: boolean; manages?: boolean } = {}) {
+function fake(opts: { draft?: any; submitted?: any; covered?: boolean; manages?: boolean; wallet?: string } = {}) {
   const calls: { updated: any[]; created: any[]; deleted: any[] } = { updated: [], created: [], deleted: [] };
   const prisma: any = {
     application: {
@@ -18,6 +18,7 @@ function fake(opts: { draft?: any; submitted?: any; covered?: boolean; manages?:
       deleteMany: async (a: any) => { calls.deleted.push(a); return { count: 1 }; },
     },
     socialAccount: { findUnique: async (a: any) => (a.where.claimedById ? (opts.manages ? { handle: 'other' } : null) : opts.covered ? { id: 'x' } : null) },
+    member: { findUnique: async () => ({ walletAddress: opts.wallet ?? '0xabc' }) },
     influencer: { findUnique: async () => null, create: (a: any) => { calls.created.push(a); return a; } },
     $transaction: async (ops: any[]) => ops,
   };
@@ -65,6 +66,15 @@ test('application: accepting creates a covered account that the applicant alread
   assert.equal(data.participating, true);
   assert.equal(data.accounts.create.claimedById, 'm1');
   assert.equal(data.accounts.create.followers, 20000);
+});
+
+test('application: accepting saves the login wallet of an EVM or a Solana applicant as the rating wallet', async () => {
+  const sol = '11111111111111111111111111111112';
+  for (const [wallet, chain] of [['0xabc', 'robinhood'], [sol, 'solana']] as const) {
+    const { svc, calls } = fake({ submitted: { ...draft, status: 'submitted', walletChain: chain }, wallet });
+    await svc.review('a1', { status: 'accepted' }, staff);
+    assert.deepEqual(calls.created[0].data.wallets.create, { chainKey: chain, address: wallet, method: 'signature' });
+  }
 });
 
 test('application: accepting is refused when the applicant already manages another account', async () => {

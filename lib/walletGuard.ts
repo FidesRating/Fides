@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { readSessionWallet } from './session';
+import { readSessionKind, readSessionWallet, solanaProvider } from './session';
 
 interface WalletEvents {
   on?(event: 'accountsChanged', handler: (accounts: string[]) => void): void;
@@ -19,6 +19,20 @@ export function useWalletGuard(signedIn: boolean, onMismatch: () => void) {
 
   useEffect(() => {
     if (!signedIn) return;
+    if (readSessionKind() === 'solana') {
+      const phantom = solanaProvider();
+      if (!phantom?.on) return;
+      // Phantom reports the new public key, or nothing when the wallet was disconnected or locked.
+      const onKey = (key?: { toString(): string } | null) => {
+        const expected = readSessionWallet();
+        if (!expected) return;
+        if (!key || key.toString() !== expected) handler.current();
+      };
+      const onDisconnect = () => handler.current();
+      phantom.on('accountChanged', onKey);
+      phantom.on('disconnect', onDisconnect);
+      return () => { phantom.removeListener?.('accountChanged', onKey); phantom.removeListener?.('disconnect', onDisconnect); };
+    }
     const wallet = (window as unknown as { ethereum?: WalletEvents }).ethereum;
     if (!wallet?.on) return;
     const onAccounts = (accounts: string[]) => {
