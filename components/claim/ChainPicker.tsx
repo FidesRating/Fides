@@ -3,10 +3,10 @@
 import { useState } from 'react';
 
 // Logos live in /public/chains. A chain without a logo file shows a letter badge instead.
-export const CHAINS: { key: string; name: string; logo: string | null; kind: 'evm' | 'solana' }[] = [
+export const CHAINS: { key: string; name: string; logo: string | null; kind: 'evm' | 'solana'; square?: boolean }[] = [
   { key: 'robinhood', name: 'Robinhood Chain', logo: '/chains/robinhood-logo.png', kind: 'evm' },
   { key: 'ethereum', name: 'Ethereum', logo: '/chains/ethereum-logo.png', kind: 'evm' },
-  { key: 'base', name: 'Base', logo: '/chains/base-logo.png', kind: 'evm' },
+  { key: 'base', name: 'Base', logo: '/chains/base-logo.svg', kind: 'evm', square: true },
   { key: 'arbitrum', name: 'Arbitrum', logo: '/chains/arbitrum-logo.png', kind: 'evm' },
   { key: 'optimism', name: 'Optimism', logo: '/chains/optimism-logo.png', kind: 'evm' },
   { key: 'polygon', name: 'Polygon', logo: '/chains/polygon-logo.png', kind: 'evm' },
@@ -46,7 +46,7 @@ export default function ChainPicker({ name = 'chain', show = 'all' }: { name?: s
           >
             {c.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={c.logo} alt="" width={36} height={36} style={{ flex: 'none', borderRadius: '50%', objectFit: 'cover' }} />
+              <img src={c.logo} alt="" width={36} height={36} style={{ flex: 'none', borderRadius: c.square ? 9 : '50%', objectFit: 'cover' }} />
             ) : (
               <span aria-hidden="true" style={{ width: 36, height: 36, flex: 'none', borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'var(--ink-deep)', color: 'var(--paper)', fontWeight: 700 }}>
                 {c.name[0]}

@@ -432,6 +432,9 @@ input[type="checkbox"]:focus-visible { outline: none; box-shadow: 0 0 0 3px var(
 
 /* Larger profile picture on rating action cards */
 .ac .type { font-size: 9px; padding: 2px 8px; }
+/* The action type badge sits in the top right corner of the card */
+.ac { position: relative; }
+.ac .type { position: absolute; top: 14px; right: 14px; }
 .ac .av-sm { width: 76px; height: 76px; font-size: 30px; box-shadow: 0 0 0 2px var(--paper-3), 0 0 0 3px var(--line-2); }
 .ac .h { gap: 12px !important; font-size: 14px; }
 
