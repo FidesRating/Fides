@@ -96,9 +96,19 @@ export function CommitteePanel({ ctx, onCount }: { ctx: Ctx; onCount: (n: number
               )}
 
               {!a.conflicted && (
-                <form style={row} onSubmit={async (e) => { e.preventDefault(); const f = e.currentTarget; const r = await act('/committee/conflicts', { influencerId: a.influencer.id, reason: val(f, 'reason') }, 'POST', 'Conflict declared. You are recused from open actions on this account.'); if (r.ok) f.reset(); }}>
-                  <input name="reason" placeholder="Declare a conflict with this account: reason" maxLength={300} required style={{ flex: '1 1 200px', minWidth: 0 }} />
-                  <button className="btn" disabled={ctx.busy}>Declare conflict</button>
+                <form className="conflict" onSubmit={async (e) => { e.preventDefault(); const f = e.currentTarget; const r = await act('/committee/conflicts', { influencerId: a.influencer.id, reason: val(f, 'reason') }, 'POST', 'Conflict declared. You are recused from open actions on this account.'); if (r.ok) f.reset(); }}>
+                  <div className="conflict-head">
+                    <b>Conflict of interest</b>
+                    <span>If you have a financial, personal or professional tie to this account, declare it. You will be recused from every open action on it and your vote will not count.</span>
+                  </div>
+                  <label>
+                    Reason (kept internal, never shown publicly)
+                    <textarea name="reason" rows={3} maxLength={300} placeholder="Example: I hold a position in a token this account promoted." required />
+                  </label>
+                  <div className="conflict-foot">
+                    <small>Max 300 characters. This cannot be undone from this screen.</small>
+                    <button className="btn danger" disabled={ctx.busy}>Declare conflict and recuse</button>
+                  </div>
                 </form>
               )}
             </div>
