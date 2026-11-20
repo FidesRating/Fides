@@ -122,26 +122,34 @@ export function ResearchPanel({ ctx }: { ctx: Ctx }) {
         </form>
       </div>
 
-      <Section title={`Articles (${rows.length})`} hint="Newest changes first, latest 50. Drafts are only visible here.">
-        {rows.length ? (
-          <Table head={['Title', 'Type', 'Status', 'Updated', '']}>
-            {rows.map((a) => (
-              <tr key={a.id}>
-                <td className="wrap"><b>{a.title}</b><br /><small>/{a.slug}{a.influencers.length ? ` · ${a.influencers.map((i) => `@${i.handle}`).join(', ')}` : ''}</small></td>
-                <td>{kindLabel(a.kind)}</td>
-                <td>{a.publishedAt ? `Published ${stamp(a.publishedAt)}` : 'Draft'}</td>
-                <td>{stamp(a.updatedAt)}</td>
-                <td>
-                  <div style={row}>
-                    <button className="btn" onClick={() => startEdit(a)}>Edit</button>
-                    <button className="btn" disabled={ctx.busy} onClick={() => toggle(a)}>{a.publishedAt ? 'Unpublish' : 'Publish'}</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </Table>
-        ) : <p>No articles yet.</p>}
-      </Section>
+      <div className="box" style={panel}>
+        <Section title={`Articles (${rows.length})`} hint="Newest changes first, latest 50. Drafts are only visible here. Published articles can be edited at any time.">
+          {rows.length ? (
+            <Table head={['Title', 'Type', 'Status', 'Updated', '']}>
+              {rows.map((a) => (
+                <tr key={a.id}>
+                  <td className="wrap">
+                    <div style={{ fontFamily: 'inherit', fontSize: 15, fontWeight: 600, lineHeight: 1.3 }}>{a.title}</div>
+                    <small style={{ color: 'var(--ink-faint)' }}>/{a.slug}{a.influencers.length ? ` · ${a.influencers.map((i) => `@${i.handle}`).join(', ')}` : ''}</small>
+                  </td>
+                  <td style={{ fontSize: 13 }}>{kindLabel(a.kind)}</td>
+                  <td style={{ fontSize: 13 }}>
+                    <span className="chip" style={{ fontSize: 10.5 }}>{a.publishedAt ? 'PUBLISHED' : 'DRAFT'}</span>
+                    {a.publishedAt && <div><small>{stamp(a.publishedAt)}</small></div>}
+                  </td>
+                  <td style={{ fontSize: 13 }}>{stamp(a.updatedAt)}</td>
+                  <td>
+                    <div style={{ ...row, gap: 8, flexWrap: 'nowrap' }}>
+                      <button className="btn" style={{ padding: '6px 14px', fontSize: 13 }} onClick={() => startEdit(a)}>Edit</button>
+                      <button className="btn" style={{ padding: '6px 14px', fontSize: 13 }} disabled={ctx.busy} onClick={() => toggle(a)}>{a.publishedAt ? 'Unpublish' : 'Publish'}</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          ) : <p>No articles yet.</p>}
+        </Section>
+      </div>
     </div>
   );
 }
