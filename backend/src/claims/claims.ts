@@ -137,7 +137,9 @@ export class ClaimsService {
   private async startApplication(member: Member, profile: XProfile, walletChain: string) {
     const { username: handle } = profile;
     if (profile.followers < RULES.minFollowers) {
-      throw new BadRequestException(`FIDES only covers public accounts with at least ${RULES.minFollowers.toLocaleString('en')} followers`);
+      throw new BadRequestException(
+        `@${handle} has ${profile.followers.toLocaleString('en')} followers. FIDES only covers public accounts with at least ${RULES.minFollowers.toLocaleString('en')} followers, so this account cannot apply yet. Disconnect your wallet and log in with another X account, or come back when the account reaches the minimum.`,
+      );
     }
     const open = await this.prisma.application.findFirst({ where: { handle, status: { in: ['draft', 'submitted'] }, NOT: { memberId: member.id } } });
     if (open) throw new ConflictException(`An application for @${handle} is already open`);

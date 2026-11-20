@@ -158,7 +158,11 @@ export default function ClaimFlow() {
 
   return (
     <section className="box" style={{ padding: 24, display: 'grid', gap: 18 }}>
-      {message && <p role="status">{message}</p>}
+      {message && (
+        <p role="status" style={{ padding: '12px 16px', border: '1px solid var(--line-2)', borderLeft: '4px solid var(--brass)', borderRadius: 8, background: 'var(--paper-2)' }}>
+          {message}
+        </p>
+      )}
 
       {!token && (
         <>
@@ -174,9 +178,10 @@ export default function ClaimFlow() {
         <>
           <h2>2. Log in with X</h2>
           <p>X confirms which account you control. FIDES reads only your username, name, picture and follower count.</p>
-          <p>If your account is already covered, you claim it. If it is not covered yet, you can apply for coverage. You can only apply for the account you log in with.</p>
+          <p>If your account is already covered, you claim it. If it is not covered yet, you can apply for coverage, but only for the account you log in with.</p>
+          <p>To be covered, an account needs at least 5,000 followers on X. A claim never changes a rating.</p>
           {application?.status === 'accepted' && (
-            <p role="status">Your application for @{application.handle} was accepted. Log in with X to claim the account.</p>
+            <p role="status">Your application for @{application.handle} was accepted. The account is now covered. Log in with X again to open your dashboard.</p>
           )}
           {application?.status === 'rejected' && (
             <p role="status">Your last application for @{application.handle} was not accepted{application.decisionNote ? `: ${application.decisionNote}` : '.'} A new application is possible 30 days after the decision.</p>
