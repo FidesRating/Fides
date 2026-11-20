@@ -6,13 +6,13 @@ import { useState } from 'react';
 const CHAINS: { key: string; name: string; logo: string | null }[] = [
   { key: 'robinhood', name: 'Robinhood Chain', logo: '/chains/robinhood.png' },
   { key: 'ethereum', name: 'Ethereum', logo: '/chains/ethereum-mark.svg' },
-  { key: 'base', name: 'Base', logo: '/chains/base.svg' },
-  { key: 'arbitrum', name: 'Arbitrum', logo: '/chains/arbitrum.svg' },
+  { key: 'base', name: 'Base', logo: '/chains/base-mark.png' },
+  { key: 'arbitrum', name: 'Arbitrum', logo: '/chains/arbitrum-mark.png' },
   { key: 'optimism', name: 'Optimism', logo: '/chains/optimism.svg' },
   { key: 'polygon', name: 'Polygon', logo: '/chains/polygon.svg' },
   { key: 'bnb', name: 'BNB Chain', logo: '/chains/bnb.svg' },
   { key: 'avalanche', name: 'Avalanche', logo: '/chains/avalanche.svg' },
-  { key: 'berachain', name: 'Berachain', logo: '/chains/berachain.svg' },
+  { key: 'berachain', name: 'Berachain', logo: '/chains/berachain-mark.png' },
 ];
 
 /** Chain choice with logos. Submits the chain key through a hidden input named `name`. */
