@@ -97,3 +97,12 @@ test('calls without prices count toward the 10-call minimum but never feed Call 
   assert.equal(r.measurableCalls, 2);
   assert.equal(r.inputs.totalCalls, 10);
 });
+
+test('Not Rated reason shows the call count and only for NR below the minimum', async () => {
+  const { notRatedReason } = await import('../src/public/presenter');
+  assert.equal(notRatedReason('NR', { totalCalls: 4 }), '4 of 10 calls recorded');
+  assert.equal(notRatedReason('NR', { totalCalls: 0 }), '0 of 10 calls recorded');
+  assert.equal(notRatedReason('NR', { totalCalls: 10 }), null);
+  assert.equal(notRatedReason('NR', null), null);
+  assert.equal(notRatedReason('BBB', { totalCalls: 4 }), null);
+});

@@ -10,7 +10,7 @@ import { CurrentMember, MemberContext, OptionalMemberGuard } from '../common/aut
 import { band, notch } from '../rating/rating.engine';
 import { ALL_RATINGS, DISCLAIMER, METHODOLOGY_VERSION, OUTLOOK_TEXT, PILLARS, RULES, SCALE, WATCH_TEXT } from '../rating/methodology';
 import { CHAIN_REGISTRY, explorerUrl } from '../config/explorer-registry';
-import { formatActionId, num, presentAction } from './presenter';
+import { formatActionId, notRatedReason, num, presentAction } from './presenter';
 import { activeWatch } from '../rating/watch';
 
 export class ListRatingsDto {
@@ -66,6 +66,7 @@ export class PublicService {
           select: {
             actionNumber: true, type: true, rating: true, outlook: true, watch: true, watchSetAt: true, totalScore: true, publishedAt: true,
             accuracy: true, disclosure: true, walletAlignment: true, conduct: true, previous: { select: { rating: true } },
+            inputs: true, // a handful of numbers, used only for the Not Rated reason
           },
         },
       },
@@ -75,7 +76,7 @@ export class PublicService {
       const weakest = a.accuracy === null ? null : PILLARS.reduce((w, p) => ((a as any)[p.key] < (a as any)[w.key] ? p : w), PILLARS[0]).label;
       return {
         handle: i.handle, displayName: i.displayName, followers: maxFollowers(i.accounts), avatarUrl: i.avatarUrl, participating: i.participating,
-        rating: a.rating!, band: band(a.rating!), outlook: a.outlook, watch: activeWatch(a), totalScore: a.totalScore, weakestPillar: weakest,
+        rating: a.rating!, band: band(a.rating!), notRatedReason: notRatedReason(a.rating, a.inputs), outlook: a.outlook, watch: activeWatch(a), totalScore: a.totalScore, weakestPillar: weakest,
         lastAction: { actionId: formatActionId(a.actionNumber), type: a.type, previousRating: a.previous?.rating ?? null, publishedAt: a.publishedAt },
       };
     });

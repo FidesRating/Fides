@@ -39,7 +39,7 @@ export default function RatingsTable({ items }: { items: RatingListItem[] }) {
                 <td>
                   <div className="rl-rating">
                     <span className={`rb ${b}`}>{formatRating(r.rating)}</span>
-                    <span className={`rl-band ${b}`}>{BAND_LABEL[r.band]}</span>
+                    <span className={`rl-band ${b}`}>{r.rating === 'NR' && r.notRatedReason ? r.notRatedReason : BAND_LABEL[r.band]}</span>
                   </div>
                 </td>
                 <td>{o ? <span className={`rl-out ${o.tone}`}><b aria-hidden="true">{o.arrow}</b>{o.label}</span> : <span className="rl-dash">n/a</span>}</td>

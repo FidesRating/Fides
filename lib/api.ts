@@ -33,6 +33,8 @@ export interface RatingListItem {
   participating: boolean;
   rating: string;
   band: Band;
+  /** For Not Rated accounts: why, for example "4 of 10 calls recorded". */
+  notRatedReason?: string | null;
   outlook: string | null;
   watch: string | null;
   totalScore: number | null;
@@ -104,6 +106,7 @@ export interface RatingDetail {
     scorecardRating: string | null;
     appliedCaps: string[];
     measurableCalls: number;
+    notRatedReason?: string | null;
     hitRate: number | null;
     medianExcess30d: number | null;
     pillars: Pillar[] | null;
