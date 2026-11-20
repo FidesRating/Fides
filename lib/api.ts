@@ -71,7 +71,7 @@ export const getStats = () => get<Stats>('/stats');
 export const getActions = (limit = 12) => get<RatingAction[]>(`/actions?limit=${limit}`);
 export const getRatings = () => get<RatingListItem[]>('/ratings');
 export const getUnderReview = () => get<UnderReviewItem[]>('/under-review');
-export const getResearch = () => get<ResearchItem[]>('/research');
+export const getResearch = (kind?: string) => get<ResearchItem[]>(kind ? `/research?kind=${enc(kind)}` : '/research');
 
 // ───────────── Rating report ─────────────
 
