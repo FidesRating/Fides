@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import ContractAddress from '@/components/ContractAddress';
 
 export default function Footer() {
   return (
@@ -11,6 +12,7 @@ export default function Footer() {
           <span className="brand-name">FIDES<small>CREDIBILITY RATINGS</small></span>
         </Link>
         <p className="about">Independent credibility ratings for crypto influencers. Opinions built from public data and a published methodology.</p>
+        <ContractAddress />
         <div className="socials">
           <a href="https://x.com/FIDESRatings" target="_blank" rel="noopener" aria-label="X"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.8 3h3.2l-7 8 8.2 10h-6.4l-5-6.3L5 21H1.8l7.5-8.6L1.4 3h6.6l4.5 5.8zm-1.1 16.2h1.8L7.4 4.7H5.5z"/></svg></a>
         </div>

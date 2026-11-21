@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { RatingListItem, Stats } from '@/lib/api';
 import { BAND_LABEL, OUTLOOK, formatRating } from '@/lib/format';
 import HeroScale from '@/components/HeroScale';
+import ContractAddress from '@/components/ContractAddress';
 
 export default function Hero({ stats, latest }: { stats: Stats; latest: RatingListItem | null }) {
   const outlook = latest?.outlook ? OUTLOOK[latest.outlook] : null;
@@ -10,6 +11,7 @@ export default function Hero({ stats, latest }: { stats: Stats; latest: RatingLi
     <section className="hero box" aria-labelledby="h-hero">
       <div className="hero-copy">
         <span className="eyebrow chip">CREDIBILITY RATINGS FOR CRYPTO INFLUENCERS</span>
+        <ContractAddress />
         <h1 id="h-hero">Every call has a <em>credit history</em><span className="cur" aria-hidden="true"></span></h1>
         <p className="sub">We rate crypto influencers the way agencies rate debt: from public calls, disclosed promotions, and the wallets they declared themselves. AAA to D, with an outlook.</p>
         <div className="btns">
