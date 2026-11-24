@@ -13,6 +13,7 @@ import { watchStart } from '../rating/watch';
 import { rejectQuorumReached } from './appeal-quorum';
 import { isXStatusUrl, publishBlocker } from './notice';
 import { isPrelaunch } from '../common/production-config';
+import { ChainAnchorService } from '../chain/chain-anchor';
 
 export class VoteDto {
   @IsOptional() @IsBoolean() recuse?: boolean;
@@ -48,7 +49,7 @@ const noticeMs = () => Number(process.env.NOTICE_HOURS ?? RULES.noticeHours) * 3
 
 @Injectable()
 export class CommitteeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly chain: ChainAnchorService) {}
 
   private async action(id: string) {
     const a = await this.prisma.ratingAction.findUnique({ where: { id }, include: { influencer: true, previous: true } });
@@ -177,7 +178,21 @@ export class CommitteeService {
         data: { status: a.rating === 'NR' ? 'not_rated' : 'rated', reviewDue: false, reviewDueReason: null },
       }),
     ]);
+    // Hash anchoring runs after the human publication and never blocks it. It is idempotent and can be repeated.
+    this.anchorPublished(id).catch(() => undefined);
     return { success: true, actionId: formatActionId(a.actionNumber), rating: a.rating, outlook: a.outlook, type: a.type };
+  }
+
+  /** Writes the rating hash and the salted committee decision hash to the chain. Only for a published action. */
+  async anchorPublished(id: string) {
+    if (!this.chain.enabled) return { status: 'disabled', txHashes: [] };
+    const a = await this.action(id);
+    if (a.status !== 'published' || !a.publishedAt || !a.rating) throw new BadRequestException('Only a published rating action can be anchored');
+    const countedVotes = await this.prisma.committeeVote.count({ where: { actionId: id, recused: false } });
+    return this.chain.anchorPublished({
+      actionNumber: a.actionNumber, handle: a.influencer.handle, rating: a.rating, outlook: a.outlook, type: a.type,
+      methodologyVersion: a.methodologyVersion, publishedAt: a.publishedAt, rationale: a.rationale, countedVotes,
+    });
   }
 
   /** Rating Watch is set or cleared on a published rating. */
@@ -282,6 +297,12 @@ export class CommitteeController {
   @Post('actions/:id/publish')
   publish(@Param('id') id: string) {
     return this.committee.publish(id);
+  }
+
+  /** Repeats the on-chain anchor for a published action. Safe to call again: existing records are never rewritten. */
+  @Post('actions/:id/anchor')
+  anchor(@Param('id') id: string) {
+    return this.committee.anchorPublished(id);
   }
 
   @Patch('actions/:id/watch')

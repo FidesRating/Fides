@@ -15,6 +15,7 @@ import { SurveillanceModule } from './queue/surveillance';
 import { HealthController } from './health.controller';
 import { WatchlistModule } from './desk/watchlist';
 import { TakedownModule } from './takedown/takedown';
+import { ChainModule } from './chain/chain-anchor';
 
 const redisUrl = new URL(process.env.REDIS_URL || 'redis://localhost:6379');
 
@@ -22,6 +23,7 @@ const redisUrl = new URL(process.env.REDIS_URL || 'redis://localhost:6379');
   imports: [
     PrismaModule,
     CommonModule,
+    ChainModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: Number(process.env.RATE_LIMIT_PER_MINUTE ?? 100) }]),
     BullModule.forRoot({
       connection: {

@@ -19,6 +19,7 @@ import { suggestOutlook } from '../rating/rating.engine';
 import { ScorecardService } from '../rating/scorecard.service';
 import { RatingModule } from '../rating/rating.module';
 import { formatActionId } from '../public/presenter';
+import { ChainAnchorService } from '../chain/chain-anchor';
 
 // ───────────────────────────── DTOs ─────────────────────────────
 
@@ -154,6 +155,7 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly scorecard: ScorecardService,
     @Inject(PRICE_PROVIDER) private readonly prices: PriceProvider,
+    private readonly chain: ChainAnchorService,
   ) {}
 
   private assertPlatformEnabled(platform: Platform) {
@@ -220,6 +222,17 @@ export class AdminService {
       this.prisma.ratingAction.updateMany({ where: { influencerId: id, status: { in: [...OPEN_ACTION] } }, data: { status: 'cancelled' } }),
       this.prisma.influencer.update({ where: { id }, data: { status: 'removed', removedAt: new Date(), removedReason: reason } }),
     ]);
+    // Takedown also revokes the on-chain records of every rating that was ever published for this account.
+    if (this.chain.enabled) {
+      const published = await this.prisma.ratingAction.findMany({
+        where: { influencerId: id, publishedAt: { not: null } }, select: { actionNumber: true },
+      });
+      for (const p of published) void this.chain.revokeRating(p.actionNumber, reason);
+      const snaps = await this.prisma.evidenceSnapshot.findMany({
+        where: { OR: [{ promotion: { influencerId: id } }, { call: { influencerId: id } }] }, select: { id: true },
+      });
+      for (const s of snaps) void this.chain.revokeEvidence(s.id, reason);
+    }
     return { success: true, status: 'removed' };
   }
 
@@ -270,7 +283,9 @@ export class AdminService {
 
   async addPromotionSnapshot(promotionId: string, dto: SnapshotDto, staff: User) {
     if (!(await this.prisma.promotion.findUnique({ where: { id: promotionId }, select: { id: true } }))) throw new NotFoundException('Promotion not found');
-    return this.prisma.evidenceSnapshot.create({ data: this.snapshotData(dto, staff, { promotionId }) });
+    const snap = await this.prisma.evidenceSnapshot.create({ data: this.snapshotData(dto, staff, { promotionId }) });
+    this.anchorPromotionEvidence(promotionId).catch(() => undefined); // rejected unless the promotion is already confirmed
+    return snap;
   }
 
   private snapshotData(dto: SnapshotDto, staff: User, target: { callId: string } | { promotionId: string }) {
@@ -365,10 +380,32 @@ export class AdminService {
   async reviewPromotion(promoId: string, dto: ReviewDto, staff: User) {
     const p = await this.prisma.promotion.findUnique({ where: { id: promoId } });
     if (!p) throw new NotFoundException('Promotion not found');
-    return this.prisma.promotion.update({
+    const updated = await this.prisma.promotion.update({
       where: { id: promoId },
       data: { status: dto.status, note: dto.note ?? p.note, reviewedById: staff.id, reviewedAt: new Date() },
     });
+    // Only human-confirmed evidence is anchored. Evidence that stops being confirmed is revoked on-chain.
+    if (dto.status === 'confirmed') this.anchorPromotionEvidence(promoId).catch(() => undefined);
+    else if (p.status === 'confirmed') this.revokePromotionEvidence(promoId, 'evidence no longer confirmed').catch(() => undefined);
+    return updated;
+  }
+
+  /** Anchors the hashes of every snapshot of a confirmed promotion. Safe to repeat. */
+  async anchorPromotionEvidence(promoId: string) {
+    if (!this.chain.enabled) return { status: 'disabled', results: [] as string[] };
+    const p = await this.prisma.promotion.findUnique({
+      where: { id: promoId }, select: { status: true, snapshots: { select: { id: true, contentHash: true } } },
+    });
+    if (!p) throw new NotFoundException('Promotion not found');
+    if (p.status !== 'confirmed') throw new BadRequestException('Only confirmed evidence can be anchored');
+    const results: string[] = [];
+    for (const s of p.snapshots) results.push((await this.chain.anchorEvidence(s.id, s.contentHash)).status);
+    return { status: 'done', results };
+  }
+
+  private async revokePromotionEvidence(promoId: string, reason: string) {
+    const snaps = await this.prisma.evidenceSnapshot.findMany({ where: { promotionId: promoId }, select: { id: true } });
+    for (const s of snaps) await this.chain.revokeEvidence(s.id, reason);
   }
 
   async listTips(status?: TipStatus) {
@@ -615,6 +652,12 @@ export class AdminController {
   @Post('promotions/:id/review')
   reviewPromotion(@Param('id') id: string, @Body() dto: ReviewDto, @CurrentStaff() staff: User) {
     return this.admin.reviewPromotion(id, dto, staff);
+  }
+
+  /** Repeats the on-chain evidence anchor for a confirmed promotion. Existing records are never rewritten. */
+  @Post('promotions/:id/anchor')
+  anchorPromotion(@Param('id') id: string) {
+    return this.admin.anchorPromotionEvidence(id);
   }
 
   @Get('tips')
