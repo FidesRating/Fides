@@ -35,7 +35,7 @@ All three contracts were verified by hand on Blockscout on 2026-11-25 (Solidity 
 ### Publisher
 
 - Publisher wallet (backend): `0x474C511871b5C98a3d8861fD5616c54033261EdF` (plain wallet, no code).
-- Authorised by the Safe in one multiSend batch: tx `0xf935a9c562f0603cc3d74331604622feca2ffa436485db4e24baee82a8a61021`, block 122409821 (0x74bed5d), status success, 2 of 3 signatures.
+- Authorised by the Safe in one multiSend batch: tx `0xf935a9c562f0603cc3d74331604622feca2ffa436485db4e24baee82a8a61021`, block 122416477 (0x74bed5d), status success, 2 of 3 signatures.
 - Verified on-chain on 2026-11-25: `isPublisher(publisher)` = true on RatingRegistry, EvidenceAnchor and CommitteeLog.
 
 ### Backend anchoring (backend/src/chain)

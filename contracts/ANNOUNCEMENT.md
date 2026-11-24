@@ -34,7 +34,7 @@ The Safe can only add or remove publishers and transfer ownership (two-step). It
 
 Publisher: dedicated backend wallet, authorised by the Safe on all three contracts
 https://robinhoodchain.blockscout.com/address/0x474C511871b5C98a3d8861fD5616c54033261EdF
-Authorisation Tx, Block 122,409,821
+Authorisation Tx, Block 122,416,477
 https://robinhoodchain.blockscout.com/tx/0xf935a9c562f0603cc3d74331604622feca2ffa436485db4e24baee82a8a61021
 The publisher can only write and revoke records. It cannot change roles. A stolen backend key therefore cannot take over the contracts.
 
